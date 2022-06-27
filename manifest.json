@@ -1,6 +1,6 @@
 {
-  "name": "go调度源码分析",
-  "short_name": "go调度源码分析",
+  "name": "常用中间件分析",
+  "short_name": "常用中间件分析",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
