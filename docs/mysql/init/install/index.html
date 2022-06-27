@@ -1,0 +1,398 @@
+<!doctype html><html lang=zh dir=ltr><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="mysql知识思维分类,浅入浅出"><meta name=theme-color content="#FFFFFF"><meta name=color-scheme content="light dark"><meta property="og:title" content="初始化"><meta property="og:description" content="mysql知识思维分类,浅入浅出"><meta property="og:type" content="article"><meta property="og:url" content="https://zput.github.io/middleware/docs/mysql/init/install/"><meta property="article:section" content="docs"><meta property="article:published_time" content="2020-01-24T10:33:00+00:00"><meta property="article:modified_time" content="2020-01-24T10:33:00+00:00"><title>初始化 | 常用中间件分析</title><link rel=manifest href=/middleware/manifest.json><link rel=icon href=/middleware/favicon.png type=image/x-icon><link rel=stylesheet href=/middleware/book.min.76f6dbe75c94e688c018dd8b54e7f880916b14ab4cf3881b81f75d6bb916603c.css integrity="sha256-dvbb51yU5ojAGN2LVOf4gJFrFKtM84gbgfdda7kWYDw=" crossorigin=anonymous><script defer src=/middleware/flexsearch.min.js></script>
+<script defer src=/middleware/en.search.min.115cf59092a271d0b909163a313e02af51e2072349a28c07dabae756a8ace08d.js integrity="sha256-EVz1kJKicdC5CRY6MT4Cr1HiByNJoowH2rrnVqis4I0=" crossorigin=anonymous></script>
+<script defer src=/middleware/sw.min.f609352e1b128d348128bfdb614a37fe64cd10a16425cbece15ecafa5115c45a.js integrity="sha256-9gk1LhsSjTSBKL/bYUo3/mTNEKFkJcvs4V7K+lEVxFo=" crossorigin=anonymous></script></head><body dir=ltr><input type=checkbox class="hidden toggle" id=menu-control>
+<input type=checkbox class="hidden toggle" id=toc-control><main class="container flex"><aside class=book-menu><div class=book-menu-content><nav><h2 class=book-brand><a class="flex align-center" href=/middleware/><span>常用中间件分析</span></a></h2><div class=magic><div class=book-search><input type=text id=book-search-input placeholder=Search aria-label=Search maxlength=64><div class="book-search-spinner spinner hidden"></div><ul id=book-search-results></ul></div><div class=book-switch><label class=switch><input id=dark-mode-checkbox type=checkbox onchange=darkmode()>
+<span class=slider></span></label></div></div><ul><li><a href=https://zput.github.io target=_blank rel=noopener>Zput博客</a></li><li><a href=https://github.com/zput target=_blank rel=noopener>GitHub</a></li></ul><hr><ul><li><span>Mysql</span><ul><li><a href=/middleware/docs/mysql/init/>开始篇</a><ul><li><a href=/middleware/docs/mysql/init/install/ class=active>初始化</a></li></ul></li><li><a href=/middleware/docs/mysql/business_facing/>面向业务篇</a><ul><li><a href=/middleware/docs/mysql/business_facing/sql/>写好sql</a></li><li><a href=/middleware/docs/mysql/business_facing/innodb_index/>索引</a></li><li><a href=/middleware/docs/mysql/business_facing/innodb_lock/>锁</a></li></ul></li><li><span>高级篇</span><ul><li><a href=/middleware/docs/mysql/advanced/page_lock_log/>底层结构</a></li></ul></li><li><a href=/middleware/docs/mysql/MySQL/>mysql高级总结</a></li><li><a href=/middleware/docs/mysql/mysql2/>mysql总结</a></li></ul></li></ul></nav><script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script><script src=/middleware/magic.js></script>
+<script src=/middleware/dark.js></script></div></aside><div class=book-page><header class=book-header><div class="flex align-center justify-between"><label for=menu-control><img src=/middleware/svg/menu.svg class=book-icon alt=Menu></label>
+<strong>初始化</strong>
+<label for=toc-control><img src=/middleware/svg/toc.svg class=book-icon alt="Table of Contents"></label></div><aside class="hidden clearfix"><nav id=TableOfContents><ul><li><a href=#1mysql环境>1.MySQL环境</a><ul><li><a href=#11环境安装>1.1.环境安装</a></li><li><a href=#12安装位置>1.2.安装位置</a></li><li><a href=#13修改字符集>1.3.修改字符集</a></li><li><a href=#14配置文件>1.4.配置文件</a></li></ul></li><li><a href=#2mysql逻辑架构>2.MySQL逻辑架构</a></li><li><a href=#3存储引擎>3.存储引擎</a></li><li><a href=#18主从复制>18.主从复制</a><ul><li><a href=#181复制基本原理>18.1.复制基本原理</a></li><li><a href=#182复制基本原则>18.2.复制基本原则</a></li><li><a href=#183docker-compose>18.3.docker-compose</a><ul><li></li></ul></li><li><a href=#184一主一从配置>18.4.一主一从配置</a><ul><li><a href=#如何分库分表>如何分库分表</a></li><li><a href=#分库分表会遗留的问题>分库分表会遗留的问题</a></li></ul></li></ul></li></ul></nav></aside></header><article class=markdown><h1 id=1mysql环境>1.MySQL环境
+<a class=anchor href=#1mysql%e7%8e%af%e5%a2%83>#</a></h1><h2 id=11环境安装>1.1.环境安装
+<a class=anchor href=#11%e7%8e%af%e5%a2%83%e5%ae%89%e8%a3%85>#</a></h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># 查看Linux服务器上是否安装过MySQL</span>
+</span></span><span style=display:flex><span>rpm -qa | grep -i mysql <span style=color:#75715e># 查询出所有mysql依赖包</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 1、拉取镜像</span>
+</span></span><span style=display:flex><span>docker pull mysql:5.7
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 2、创建实例并启动</span>
+</span></span><span style=display:flex><span>docker run -p 3306:3306 --name mysql <span style=color:#ae81ff>\
+</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>-v /root/mysql/log:/var/log/mysql <span style=color:#ae81ff>\
+</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>-v /root/mysql/data:/var/lib/mysql <span style=color:#ae81ff>\
+</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>-v /root/mysql/conf:/etc/mysql <span style=color:#ae81ff>\
+</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>-e MYSQL_ROOT_PASSWORD<span style=color:#f92672>=</span>qwer <span style=color:#ae81ff>\
+</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>-d mysql:5.7
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 3、mysql配置 /root/mysql/conf/my.conf</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 参照1.4.配置文件!!!</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 4、重启mysql容器</span>
+</span></span><span style=display:flex><span>docker restart mysql
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 5、进入到mysql容器</span>
+</span></span><span style=display:flex><span>docker exec -it mysql /bin/bash
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 6、查看修改的配置文件</span>
+</span></span><span style=display:flex><span>cat /etc/mysql/my.conf
+</span></span></code></pre></div><h2 id=12安装位置>1.2.安装位置
+<a class=anchor href=#12%e5%ae%89%e8%a3%85%e4%bd%8d%e7%bd%ae>#</a></h2><p><code>Docker</code>容器就是一个小型的<code>Linux</code>环境，进入到<code>MySQL</code>容器中。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>docker exec -it mysql /bin/bash
+</span></span></code></pre></div><p><code>Linux</code>环境下<code>MySQL</code>的安装目录。</p><table><thead><tr><th>路径</th><th>解释</th></tr></thead><tbody><tr><td><code>/var/lib/mysql</code></td><td>MySQL数据库文件存放位置</td></tr><tr><td><code>/usr/share/mysql</code></td><td>错误消息和字符集文件配置</td></tr><tr><td><code>/usr/bin</code></td><td>客户端程序和脚本</td></tr><tr><td><code>/etc/init.d/mysql</code></td><td>启停脚本相关</td></tr></tbody></table><h2 id=13修改字符集>1.3.修改字符集
+<a class=anchor href=#13%e4%bf%ae%e6%94%b9%e5%ad%97%e7%ac%a6%e9%9b%86>#</a></h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># determine which charset/collations are available</span>
+</span></span><span style=display:flex><span>SHOW CHARSET;
+</span></span><span style=display:flex><span>SHOW COLLATION;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># check charset</span>
+</span></span><span style=display:flex><span>SHOW VARIABLES LIKE <span style=color:#e6db74>&#39;%character%&#39;</span>;
+</span></span><span style=display:flex><span>SHOW VARIABLES LIKE <span style=color:#e6db74>&#39;%collation%&#39;</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># set charset (in configure file -&gt; my.cnf)</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>mysqld<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>character-set-server<span style=color:#f92672>=</span>utf8mb4
+</span></span><span style=display:flex><span>collation-server<span style=color:#f92672>=</span>utf8mb4_general_ci
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># check database/table charset:检查数据库/表的创建信息，注意这里可以在下一步中的命令改，就是它不是最早创建时的信息，未来的命令可以改变这个输出结果。</span>
+</span></span><span style=display:flex><span>SHOW CREATE DATABASE databasename;
+</span></span><span style=display:flex><span>SHOW CREATE TABLE tablename;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># change the database/table charset：改变数据库/表的字符</span>
+</span></span><span style=display:flex><span>ALTER DATABASE databasename CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+</span></span><span style=display:flex><span>ALTER TABLE tablename CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># set when create database/table：可以在创建数据库/表的时候指定字符</span>
+</span></span><span style=display:flex><span>CREATE DATABASE new_db CHARACTER SET utf8mb4 DEFAULT COLLATE utf8mb4_general_ci;
+</span></span><span style=display:flex><span>CREATE TABLE new_table <span style=color:#f92672>(</span>id INT<span style=color:#f92672>)</span> CHARSET utf8mb4 COLLATE utf8mb4_general_ci;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># Note： I heard that in Mysql utf8 is not the true utf8，utf8mb4 is the real utf8. so, if you have special character that can&#39;t save to mysql, maybe you should use utf8mb4 and utf8mb4_general_ci</span>
+</span></span></code></pre></div><p><code>MySQL5.7</code>配置文件位置是<code>/etc/my.cnf</code>或者<code>/etc/mysql/my.cnf</code>，如果字符集不是<code>utf-8</code>直接进入配置文件修改即可。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#f92672>[</span>client<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#mysqlde utf8字符集默认为3位的，不支持emoji表情及部分不常见的汉字，故推荐使用utf8mb4</span>
+</span></span><span style=display:flex><span>default-character-set<span style=color:#f92672>=</span>utf8mb4
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>mysql<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>default-character-set<span style=color:#f92672>=</span>utf8mb4
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>mysqld<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#设置client**连接**mysql时的字符集,防止乱码</span>
+</span></span><span style=display:flex><span>init_connect<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;SET collation_connection = utf8mb4_general_ci&#39;</span>
+</span></span><span style=display:flex><span>init_connect<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;SET NAMES utf8mb4&#39;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#数据库默认字符集</span>
+</span></span><span style=display:flex><span>character-set-server<span style=color:#f92672>=</span>utf8mb4
+</span></span><span style=display:flex><span><span style=color:#75715e>#数据库字符集对应一些排序等规则，注意要和character-set-server对应</span>
+</span></span><span style=display:flex><span>collation-server<span style=color:#f92672>=</span>utf8mb4_general_ci
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 跳过mysql程序起动时的字符参数设置 ，使用服务器端字符集设置</span>
+</span></span><span style=display:flex><span>skip-character-set-client-handshake
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 禁止MySQL对外部连接进行DNS解析，使用这一选项可以消除MySQL进行DNS解析的时间。但需要注意，如果开启该选项，则所有远程主机连接授权都要使用IP地址方式，否则MySQL将无法正常处理连接请求！</span>
+</span></span><span style=display:flex><span>skip-name-resolve
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 数据库错误日志文件</span>
+</span></span><span style=display:flex><span>log-error <span style=color:#f92672>=</span> /var/log/mysql/error.log
+</span></span></code></pre></div><p><strong>注意：安装<code>MySQL</code>完毕之后，第一件事就是修改字符集编码。</strong></p><h2 id=14配置文件>1.4.配置文件
+<a class=anchor href=#14%e9%85%8d%e7%bd%ae%e6%96%87%e4%bb%b6>#</a></h2><p><strong><code>MySQL</code>配置文件讲解：https://gist.github.com/zput/9609dbbbbe2aa1f2f516f62c699fd682</strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># 查询错误日志的位置</span>
+</span></span><span style=display:flex><span>show variables like <span style=color:#e6db74>&#39;log_error&#39;</span>;
+</span></span><span style=display:flex><span>show variables like <span style=color:#e6db74>&#39;general_log_file&#39;</span>;
+</span></span><span style=display:flex><span>show variables like <span style=color:#e6db74>&#39;slow_query_log_file&#39;</span>;
+</span></span></code></pre></div><p>1、错误日志<code>log-error</code>：默认是关闭的，记录严重的警告和错误信息，每次启动和关闭的详细信息等。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># my,cnf</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 数据库错误日志文件</span>
+</span></span><span style=display:flex><span>log-error <span style=color:#f92672>=</span> /var/log/mysql/error.log
+</span></span></code></pre></div><p>2、查询日志<code>log</code>：默认关闭，记录查询的<code>sql</code>语句，如果开启会降低<code>MySQL</code>整体的性能，因为记录日志需要消耗系统资源。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># my,cnf</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 慢查询sql日志设置</span>
+</span></span><span style=display:flex><span>slow_query_log <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>slow_query_log_file <span style=color:#f92672>=</span> slow.log
+</span></span></code></pre></div><p>3、二进制日志<code>log-bin</code>：主从复制。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># my,cnf</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 开启mysql binlog功能</span>
+</span></span><span style=display:flex><span>log-bin<span style=color:#f92672>=</span>mysql-bin
+</span></span></code></pre></div><p>4、数据文件。</p><ul><li><code>frm文件</code>：存放表结构。</li><li><code>myd</code>文件：存放表数据。</li><li><code>myi</code>文件：存放表索引。</li></ul><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># mysql5.7 使用.frm文件来存储表结构</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 使用 .ibd文件来存储表索引和表数据</span>
+</span></span><span style=display:flex><span>-rw-r-----  <span style=color:#ae81ff>1</span> mysql mysql   <span style=color:#ae81ff>8988</span> Jun <span style=color:#ae81ff>25</span> 09:31 pms_category.frm
+</span></span><span style=display:flex><span>-rw-r-----  <span style=color:#ae81ff>1</span> mysql mysql <span style=color:#ae81ff>245760</span> Jul <span style=color:#ae81ff>21</span> 10:01 pms_category.ibd
+</span></span></code></pre></div><p><code>MySQL5.7</code>的<code>Innodb</code>存储引擎可将所有数据存放于<code>ibdata*</code>的共享表空间，也可将每张表存放于独立的<code>.ibd</code>文件的独立表空间。
+共享表空间以及独立表空间都是针对数据的存储方式而言的。</p><ul><li>共享表空间: 某一个数据库的所有的表数据，索引文件全部放在一个文件中，默认这个共享表空间的文件路径在<code>data</code>目录下。 默认的文件名为<code>:ibdata1</code> 初始化为<code>10M</code>。</li><li>独立表空间: 每一个表都将会生成以独立的文件方式来进行存储，每一个表都有一个<code>.frm</code>表描述文件，还有一个<code>.ibd</code>文件。 其中这个文件包括了单独一个表的数据内容以及索引内容，默认情况下它的存储位置也是在表的位置之中。在配置文件<code>my.cnf</code>中设置： <code>innodb_file_per_table</code>。</li></ul><h1 id=2mysql逻辑架构>2.MySQL逻辑架构
+<a class=anchor href=#2mysql%e9%80%bb%e8%be%91%e6%9e%b6%e6%9e%84>#</a></h1><p><img src=https://raw.githubusercontent.com/zput/myPicLib/master/zput.github.io/20201203152459.png alt=MySQL逻辑架构></p><ul><li><p><code>Connectors</code>：指的是不同语言中与SQL的交互。</p></li><li><p><code>Connection Pool</code>：管理缓冲用户连接，线程处理等需要缓存的需求。<strong>MySQL数据库的连接层。</strong></p></li><li><p><code>Management Serveices & Utilities</code>：系统管理和控制工具。备份、安全、复制、集群等等。。</p></li><li><p><code>SQL Interface</code>：接受用户的SQL命令，并且返回用户需要查询的结果。</p></li><li><p><code>Parser</code>：SQL语句解析器。</p></li><li><p><code>Optimizer</code>：查询优化器，SQL语句在查询之前会使用查询优化器对查询进行优化。<strong>就是优化客户端请求query</strong>，根据客户端请求的 query 语句，和数据库中的一些统计信息，在一系列算法的基础上进行分析，得出一个最优的策略，告诉后面的程序如何取得这个 query 语句的结果。<strong>For Example</strong>： <code>select uid,name from user where gender = 1;</code>这个<code>select </code>查询先根据<code>where </code>语句进行选取，而不是先将表全部查询出来以后再进行<code>gender</code>过滤；然后根据<code>uid</code>和<code>name</code>进行属性投影，而不是将属性全部取出以后再进行过滤。最后将这两个查询条件联接起来生成最终查询结果。</p></li><li><p><code>Caches & Buffers</code>：查询缓存。</p></li><li><p><code>Pluggable Storage Engines</code>：<strong>存储引擎接口。MySQL区别于其他数据库的最重要的特点就是其插件式的表存储引擎(注意：存储引擎是基于表的，而不是数据库)。</strong></p></li><li><p><code>File System</code>：数据落地到磁盘上，就是文件的存储。</p></li></ul><p>MySQL数据库和其他数据库相比，MySQL有点与众不同，主要体现在存储引擎的架构上，<strong>插件式的存储引擎架构将查询处理和其他的系统任务以及数据的存储提取相分离</strong>。这种架构可以根据业务的需求和实际需求选择合适的存储引擎。</p><blockquote><p>逻辑架构分层</p></blockquote><p><img src=https://raw.githubusercontent.com/zput/myPicLib/master/zput.github.io/20201203152555.png alt=MySQL逻辑架构></p><ul><li><p>连接层：最上层是一些客户端和连接服务，包含本地sock通信和大多数基于客户端/服务端工具实现的类似于<code>tcp/ip</code>的通信。主要完成一些类似于连接处理、授权认证、及相关的安全方案。在该层上引入了线程池的概念，为通过认证安全接入的客户端提供线程。同样在该层上可以实现基于<code>SSL</code>的安全链接。服务器也会为安全接入的每个客户端验证它所具有的操作权限。</p></li><li><p>服务层：MySQL的核心服务功能层，该层是MySQL的核心，包括查询缓存，解析器，解析树，预处理器，查询优化器。主要进行查询解析、分析、查询缓存、内置函数、存储过程、触发器、视图等，select操作会先检查是否命中查询缓存，命中则直接返回缓存数据，否则解析查询并创建对应的解析树。</p></li><li><p>引擎层：存储引擎层，存储引擎真正的负责了MySQL中数据的存储和提取，服务器通过API与存储引擎进行通信。不同的存储引擎具有的功能不同，这样我们可以根据自己的实际需要进行选取。</p></li><li><p>存储层：数据存储层，主要是将数据存储在运行于裸设备的文件系统之上，并完成与存储引擎的交互。</p></li></ul><h1 id=3存储引擎>3.存储引擎
+<a class=anchor href=#3%e5%ad%98%e5%82%a8%e5%bc%95%e6%93%8e>#</a></h1><p><code>show engines;</code>命令查看MySQL5.7支持的存储引擎。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>mysql&gt; show engines;
+</span></span></code></pre></div><p><img src=https://raw.githubusercontent.com/zput/myPicLib/master/zput.github.io/20201203152645.png alt=存储引擎></p><p><code>show variables like 'default_storage_engine%';</code>查看当前数据库正在使用的存储引擎。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>mysql&gt; show variables like <span style=color:#e6db74>&#39;default_storage_engine%&#39;</span>;
+</span></span><span style=display:flex><span>+------------------------+--------+
+</span></span><span style=display:flex><span>| Variable_name          | Value  |
+</span></span><span style=display:flex><span>+------------------------+--------+
+</span></span><span style=display:flex><span>| default_storage_engine | InnoDB |
+</span></span><span style=display:flex><span>+------------------------+--------+
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span> row in set <span style=color:#f92672>(</span>0.01 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div><blockquote><p>InnoDB和MyISAM对比</p></blockquote><table><thead><tr><th style=text-align:left>对比项</th><th style=text-align:center>MyISAM</th><th style=text-align:center>InnoDB</th></tr></thead><tbody><tr><td style=text-align:left>主外键</td><td style=text-align:center>不支持</td><td style=text-align:center>支持</td></tr><tr><td style=text-align:left>事务</td><td style=text-align:center>不支持</td><td style=text-align:center>支持</td></tr><tr><td style=text-align:left>行表锁</td><td style=text-align:center>表锁，即使操作一条记录也会锁住整张表，<strong>不适合高并发操作</strong></td><td style=text-align:center>行锁，操作时只锁某一行，不对其他行有影响，<strong>适合高并发操作</strong></td></tr><tr><td style=text-align:left>缓存</td><td style=text-align:center>只缓存索引，不缓存真实数据</td><td style=text-align:center>不仅缓存索引还要缓存真实数据，対内存要求较高，而且内存大小対性能有决定性影响</td></tr><tr><td style=text-align:left>表空间</td><td style=text-align:center>小</td><td style=text-align:center>大</td></tr><tr><td style=text-align:left>关注点</td><td style=text-align:center>性能</td><td style=text-align:center>事务</td></tr><tr><td style=text-align:left>默认安装</td><td style=text-align:center>Y</td><td style=text-align:center>Y</td></tr></tbody></table><h1 id=18主从复制>18.主从复制
+<a class=anchor href=#18%e4%b8%bb%e4%bb%8e%e5%a4%8d%e5%88%b6>#</a></h1><h2 id=181复制基本原理>18.1.复制基本原理
+<a class=anchor href=#181%e5%a4%8d%e5%88%b6%e5%9f%ba%e6%9c%ac%e5%8e%9f%e7%90%86>#</a></h2><p><img src="https://img-blog.csdnimg.cn/20200806170415401.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L1JyaW5nb18=,size_16,color_FFFFFF,t_70" alt=主从复制></p><p>MySQL复制过程分为三步：</p><ul><li>Master将改变记录到二进制日志(Binary Log)。这些记录过程叫做二进制日志事件，<code>Binary Log Events</code>；</li><li>Slave将Master的<code>Binary Log Events</code>拷贝到它的中继日志(Replay Log);</li><li>Slave重做中继日志中的事件，将改变应用到自己的数据库中。MySQL复制是异步且串行化的。</li></ul><h2 id=182复制基本原则>18.2.复制基本原则
+<a class=anchor href=#182%e5%a4%8d%e5%88%b6%e5%9f%ba%e6%9c%ac%e5%8e%9f%e5%88%99>#</a></h2><ul><li>每个Slave只有一个Master。</li><li>每个Slave只能有一个唯一的服务器ID。</li><li>每个Master可以有多个Salve。</li></ul><h2 id=183docker-compose>18.3.docker-compose
+<a class=anchor href=#183docker-compose>#</a></h2><p><a href=https://github.com/zput/mysql-master-slave-docker-example>github</a></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># 拉起Master和Slave</span>
+</span></span><span style=display:flex><span>$ docker-compose -p mysql-repl up
+</span></span><span style=display:flex><span><span style=color:#75715e># 连接Master</span>
+</span></span><span style=display:flex><span>$ docker exec -it mysql-repl_mysql-master_1 mysql -u root -p
+</span></span><span style=display:flex><span><span style=color:#75715e># 连接Slave</span>
+</span></span><span style=display:flex><span>$ docker exec -it mysql-repl_mysql-slave_1 mysql -u root -p
+</span></span></code></pre></div><h4 id=创建replication用户>创建Replication用户
+<a class=anchor href=#%e5%88%9b%e5%bb%bareplication%e7%94%a8%e6%88%b7>#</a></h4><p>到Master上创建Replication用户：</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>mysql&gt; CREATE USER <span style=color:#e6db74>&#39;repl&#39;</span>@<span style=color:#e6db74>&#39;%&#39;</span> IDENTIFIED BY <span style=color:#e6db74>&#39;password&#39;</span>;
+</span></span><span style=display:flex><span>mysql&gt; GRANT REPLICATION SLAVE ON *.* TO <span style=color:#e6db74>&#39;repl&#39;</span>@<span style=color:#e6db74>&#39;%&#39;</span>;
+</span></span></code></pre></div><h4 id=将slave和master关联>将Slave和Master关联
+<a class=anchor href=#%e5%b0%86slave%e5%92%8cmaster%e5%85%b3%e8%81%94>#</a></h4><p>到Slave上把自己和Master关联起来：</p><ul><li>并且CHANGE MASTER TO语句有所不同，使用的是Master的Service Name以及容器内端口3306：</li></ul><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>CHANGE MASTER TO 
+</span></span><span style=display:flex><span>  MASTER_HOST<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;mysql-master&#39;</span>,
+</span></span><span style=display:flex><span>  MASTER_PORT<span style=color:#f92672>=</span>3306,
+</span></span><span style=display:flex><span>  MASTER_USER<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;repl&#39;</span>,
+</span></span><span style=display:flex><span>  MASTER_PASSWORD<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;password&#39;</span>,
+</span></span><span style=display:flex><span>  GET_MASTER_PUBLIC_KEY<span style=color:#f92672>=</span>1,
+</span></span><span style=display:flex><span>  MASTER_AUTO_POSITION<span style=color:#f92672>=</span>1;
+</span></span></code></pre></div><h2 id=184一主一从配置>18.4.一主一从配置
+<a class=anchor href=#184%e4%b8%80%e4%b8%bb%e4%b8%80%e4%bb%8e%e9%85%8d%e7%bd%ae>#</a></h2><blockquote><p>1、基本要求：Master和Slave的MySQL服务器版本一致且后台以服务运行。</p></blockquote><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># 创建mysql-slave1实例</span>
+</span></span><span style=display:flex><span>docker run -p 3307:3306 --name mysql-slave1 <span style=color:#ae81ff>\
+</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>-v /root/mysql-slave1/log:/var/log/mysql <span style=color:#ae81ff>\
+</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>-v /root/mysql-slave1/data:/var/lib/mysql <span style=color:#ae81ff>\
+</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>-v /root/mysql-slave1/conf:/etc/mysql <span style=color:#ae81ff>\
+</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>-e MYSQL_ROOT_PASSWORD<span style=color:#f92672>=</span><span style=color:#ae81ff>333</span> <span style=color:#ae81ff>\
+</span></span></span><span style=display:flex><span><span style=color:#ae81ff></span>-d mysql:5.7
+</span></span></code></pre></div><blockquote><p>2、主从配置都是配在[mysqld]节点下，都是小写</p></blockquote><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># Master配置</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>mysqld<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>server-id<span style=color:#f92672>=</span><span style=color:#ae81ff>1</span> <span style=color:#75715e># 必须</span>
+</span></span><span style=display:flex><span>log-bin<span style=color:#f92672>=</span>/var/lib/mysql/mysql-bin <span style=color:#75715e># 必须</span>
+</span></span><span style=display:flex><span>read-only<span style=color:#f92672>=</span><span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>binlog-ignore-db<span style=color:#f92672>=</span>mysql
+</span></span></code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># Slave配置</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>mysqld<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>server-id<span style=color:#f92672>=</span><span style=color:#ae81ff>2</span> <span style=color:#75715e># 必须</span>
+</span></span><span style=display:flex><span>log-bin<span style=color:#f92672>=</span>/var/lib/mysql/mysql-bin
+</span></span></code></pre></div><blockquote><p>3、Master配置</p></blockquote><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># 1、GRANT REPLICATION SLAVE ON *.* TO &#39;username&#39;@&#39;从机IP地址&#39; IDENTIFIED BY &#39;password&#39;;</span>
+</span></span><span style=display:flex><span>mysql&gt; GRANT REPLICATION SLAVE ON *.* TO <span style=color:#e6db74>&#39;zhangsan&#39;</span>@<span style=color:#e6db74>&#39;172.18.0.3&#39;</span> IDENTIFIED BY <span style=color:#e6db74>&#39;123456&#39;</span>;
+</span></span><span style=display:flex><span>Query OK, <span style=color:#ae81ff>0</span> rows affected, <span style=color:#ae81ff>1</span> warning <span style=color:#f92672>(</span>0.01 sec<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 2、刷新命令</span>
+</span></span><span style=display:flex><span>mysql&gt; FLUSH PRIVILEGES;
+</span></span><span style=display:flex><span>Query OK, <span style=color:#ae81ff>0</span> rows affected <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 3、记录下File和Position</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 每次配从机的时候都要SHOW MASTER STATUS;查看最新的File和Position</span>
+</span></span><span style=display:flex><span>mysql&gt; SHOW MASTER STATUS;
+</span></span><span style=display:flex><span>+------------------+----------+--------------+------------------+-------------------+
+</span></span><span style=display:flex><span>| File             | Position | Binlog_Do_DB | Binlog_Ignore_DB | Executed_Gtid_Set |
+</span></span><span style=display:flex><span>+------------------+----------+--------------+------------------+-------------------+
+</span></span><span style=display:flex><span>| mysql-bin.000001 |      <span style=color:#ae81ff>602</span> |              | mysql            |                   |
+</span></span><span style=display:flex><span>+------------------+----------+--------------+------------------+-------------------+
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span> row in set <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div><blockquote><p>4、Slave从机配置</p></blockquote><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>CHANGE MASTER TO MASTER_HOST<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;172.18.0.4&#39;</span>,
+</span></span><span style=display:flex><span>MASTER_USER<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;zhangsan&#39;</span>,
+</span></span><span style=display:flex><span>MASTER_PASSWORD<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;123456&#39;</span>,
+</span></span><span style=display:flex><span>MASTER_LOG_FILE<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;mysql-bin.File的编号&#39;</span>,
+</span></span><span style=display:flex><span>MASTER_LOG_POS<span style=color:#f92672>=</span>Position的最新值;
+</span></span></code></pre></div><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># 1、使用用户名密码登录进Master</span>
+</span></span><span style=display:flex><span>mysql&gt; CHANGE MASTER TO MASTER_HOST<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;172.18.0.4&#39;</span>,
+</span></span><span style=display:flex><span>    -&gt; MASTER_USER<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;zhangsan&#39;</span>,
+</span></span><span style=display:flex><span>    -&gt; MASTER_PASSWORD<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;123456&#39;</span>,
+</span></span><span style=display:flex><span>    -&gt; MASTER_LOG_FILE<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;mysql-bin.000001&#39;</span>,
+</span></span><span style=display:flex><span>    -&gt; MASTER_LOG_POS<span style=color:#f92672>=</span>602;
+</span></span><span style=display:flex><span>Query OK, <span style=color:#ae81ff>0</span> rows affected, <span style=color:#ae81ff>2</span> warnings <span style=color:#f92672>(</span>0.02 sec<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 2、开启Slave从机的复制</span>
+</span></span><span style=display:flex><span>mysql&gt; START SLAVE;
+</span></span><span style=display:flex><span>Query OK, <span style=color:#ae81ff>0</span> rows affected <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 3、查看Slave状态</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># Slave_IO_Running 和 Slave_SQL_Running 必须同时为Yes 说明主从复制配置成功！</span>
+</span></span><span style=display:flex><span>mysql&gt; SHOW SLAVE STATUS<span style=color:#ae81ff>\G</span>
+</span></span><span style=display:flex><span>*************************** 1. row ***************************
+</span></span><span style=display:flex><span>               Slave_IO_State: Waiting <span style=color:#66d9ef>for</span> master to send event <span style=color:#75715e># Slave待命状态</span>
+</span></span><span style=display:flex><span>                  Master_Host: 172.18.0.4
+</span></span><span style=display:flex><span>                  Master_User: zhangsan
+</span></span><span style=display:flex><span>                  Master_Port: <span style=color:#ae81ff>3306</span>
+</span></span><span style=display:flex><span>                Connect_Retry: <span style=color:#ae81ff>60</span>
+</span></span><span style=display:flex><span>              Master_Log_File: mysql-bin.000001
+</span></span><span style=display:flex><span>          Read_Master_Log_Pos: <span style=color:#ae81ff>602</span>
+</span></span><span style=display:flex><span>               Relay_Log_File: b030ad25d5fe-relay-bin.000002
+</span></span><span style=display:flex><span>                Relay_Log_Pos: <span style=color:#ae81ff>320</span>
+</span></span><span style=display:flex><span>        Relay_Master_Log_File: mysql-bin.000001
+</span></span><span style=display:flex><span>             Slave_IO_Running: Yes  
+</span></span><span style=display:flex><span>            Slave_SQL_Running: Yes
+</span></span><span style=display:flex><span>              Replicate_Do_DB: 
+</span></span><span style=display:flex><span>          Replicate_Ignore_DB: 
+</span></span><span style=display:flex><span>           Replicate_Do_Table: 
+</span></span><span style=display:flex><span>       Replicate_Ignore_Table: 
+</span></span><span style=display:flex><span>      Replicate_Wild_Do_Table: 
+</span></span><span style=display:flex><span>  Replicate_Wild_Ignore_Table: 
+</span></span><span style=display:flex><span>                   Last_Errno: <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>                   Last_Error: 
+</span></span><span style=display:flex><span>                 Skip_Counter: <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>          Exec_Master_Log_Pos: <span style=color:#ae81ff>602</span>
+</span></span><span style=display:flex><span>              Relay_Log_Space: <span style=color:#ae81ff>534</span>
+</span></span><span style=display:flex><span>              Until_Condition: None
+</span></span><span style=display:flex><span>               Until_Log_File: 
+</span></span><span style=display:flex><span>                Until_Log_Pos: <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>           Master_SSL_Allowed: No
+</span></span><span style=display:flex><span>           Master_SSL_CA_File: 
+</span></span><span style=display:flex><span>           Master_SSL_CA_Path: 
+</span></span><span style=display:flex><span>              Master_SSL_Cert: 
+</span></span><span style=display:flex><span>            Master_SSL_Cipher: 
+</span></span><span style=display:flex><span>               Master_SSL_Key: 
+</span></span><span style=display:flex><span>        Seconds_Behind_Master: <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>Master_SSL_Verify_Server_Cert: No
+</span></span><span style=display:flex><span>                Last_IO_Errno: <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>                Last_IO_Error: 
+</span></span><span style=display:flex><span>               Last_SQL_Errno: <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>               Last_SQL_Error: 
+</span></span><span style=display:flex><span>  Replicate_Ignore_Server_Ids: 
+</span></span><span style=display:flex><span>             Master_Server_Id: <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>                  Master_UUID: bd047557-b20c-11ea-9961-0242ac120002
+</span></span><span style=display:flex><span>             Master_Info_File: /var/lib/mysql/master.info
+</span></span><span style=display:flex><span>                    SQL_Delay: <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>          SQL_Remaining_Delay: NULL
+</span></span><span style=display:flex><span>      Slave_SQL_Running_State: Slave has read all relay log; waiting <span style=color:#66d9ef>for</span> more updates
+</span></span><span style=display:flex><span>           Master_Retry_Count: <span style=color:#ae81ff>86400</span>
+</span></span><span style=display:flex><span>                  Master_Bind: 
+</span></span><span style=display:flex><span>      Last_IO_Error_Timestamp: 
+</span></span><span style=display:flex><span>     Last_SQL_Error_Timestamp: 
+</span></span><span style=display:flex><span>               Master_SSL_Crl: 
+</span></span><span style=display:flex><span>           Master_SSL_Crlpath: 
+</span></span><span style=display:flex><span>           Retrieved_Gtid_Set: 
+</span></span><span style=display:flex><span>            Executed_Gtid_Set: 
+</span></span><span style=display:flex><span>                Auto_Position: <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>         Replicate_Rewrite_DB: 
+</span></span><span style=display:flex><span>                 Channel_Name: 
+</span></span><span style=display:flex><span>           Master_TLS_Version: 
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span> row in set <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div><blockquote><p>5、测试主从复制</p></blockquote><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># Master创建数据库</span>
+</span></span><span style=display:flex><span>mysql&gt; create database test_replication;
+</span></span><span style=display:flex><span>Query OK, <span style=color:#ae81ff>1</span> row affected <span style=color:#f92672>(</span>0.01 sec<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># Slave查询数据库</span>
+</span></span><span style=display:flex><span>mysql&gt; show databases;
+</span></span><span style=display:flex><span>+--------------------+
+</span></span><span style=display:flex><span>| Database           |
+</span></span><span style=display:flex><span>+--------------------+
+</span></span><span style=display:flex><span>| information_schema |
+</span></span><span style=display:flex><span>| mysql              |
+</span></span><span style=display:flex><span>| performance_schema |
+</span></span><span style=display:flex><span>| sys                |
+</span></span><span style=display:flex><span>| test_replication   |
+</span></span><span style=display:flex><span>+--------------------+
+</span></span><span style=display:flex><span><span style=color:#ae81ff>5</span> rows in set <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div><blockquote><p>6、停止主从复制功能</p></blockquote><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># 1、停止Slave</span>
+</span></span><span style=display:flex><span>mysql&gt; STOP SLAVE;
+</span></span><span style=display:flex><span>Query OK, <span style=color:#ae81ff>0</span> rows affected <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 2、重新配置主从</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># MASTER_LOG_FILE 和 MASTER_LOG_POS一定要根据最新的数据来配</span>
+</span></span><span style=display:flex><span>mysql&gt; CHANGE MASTER TO MASTER_HOST<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;172.18.0.4&#39;</span>,
+</span></span><span style=display:flex><span>    -&gt; MASTER_USER<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;zhangsan&#39;</span>,
+</span></span><span style=display:flex><span>    -&gt; MASTER_PASSWORD<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;123456&#39;</span>,
+</span></span><span style=display:flex><span>    -&gt; MASTER_LOG_FILE<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;mysql-bin.000001&#39;</span>,
+</span></span><span style=display:flex><span>    -&gt; MASTER_LOG_POS<span style=color:#f92672>=</span>797;
+</span></span><span style=display:flex><span>Query OK, <span style=color:#ae81ff>0</span> rows affected, <span style=color:#ae81ff>2</span> warnings <span style=color:#f92672>(</span>0.01 sec<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>mysql&gt; START SLAVE;
+</span></span><span style=display:flex><span>Query OK, <span style=color:#ae81ff>0</span> rows affected <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>mysql&gt; SHOW SLAVE STATUS<span style=color:#ae81ff>\G</span>
+</span></span><span style=display:flex><span>*************************** 1. row ***************************
+</span></span><span style=display:flex><span>               Slave_IO_State: Waiting <span style=color:#66d9ef>for</span> master to send event
+</span></span><span style=display:flex><span>                  Master_Host: 172.18.0.4
+</span></span><span style=display:flex><span>                  Master_User: zhangsan
+</span></span><span style=display:flex><span>                  Master_Port: <span style=color:#ae81ff>3306</span>
+</span></span><span style=display:flex><span>                Connect_Retry: <span style=color:#ae81ff>60</span>
+</span></span><span style=display:flex><span>              Master_Log_File: mysql-bin.000001
+</span></span><span style=display:flex><span>          Read_Master_Log_Pos: <span style=color:#ae81ff>797</span>
+</span></span><span style=display:flex><span>               Relay_Log_File: b030ad25d5fe-relay-bin.000002
+</span></span><span style=display:flex><span>                Relay_Log_Pos: <span style=color:#ae81ff>320</span>
+</span></span><span style=display:flex><span>        Relay_Master_Log_File: mysql-bin.000001
+</span></span><span style=display:flex><span>             Slave_IO_Running: Yes
+</span></span><span style=display:flex><span>            Slave_SQL_Running: Yes
+</span></span><span style=display:flex><span>              Replicate_Do_DB: 
+</span></span><span style=display:flex><span>          Replicate_Ignore_DB: 
+</span></span><span style=display:flex><span>           Replicate_Do_Table: 
+</span></span><span style=display:flex><span>       Replicate_Ignore_Table: 
+</span></span><span style=display:flex><span>      Replicate_Wild_Do_Table: 
+</span></span><span style=display:flex><span>  Replicate_Wild_Ignore_Table: 
+</span></span><span style=display:flex><span>                   Last_Errno: <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>                   Last_Error: 
+</span></span><span style=display:flex><span>                 Skip_Counter: <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>          Exec_Master_Log_Pos: <span style=color:#ae81ff>797</span>
+</span></span><span style=display:flex><span>              Relay_Log_Space: <span style=color:#ae81ff>534</span>
+</span></span><span style=display:flex><span>              Until_Condition: None
+</span></span><span style=display:flex><span>               Until_Log_File: 
+</span></span><span style=display:flex><span>                Until_Log_Pos: <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>           Master_SSL_Allowed: No
+</span></span><span style=display:flex><span>           Master_SSL_CA_File: 
+</span></span><span style=display:flex><span>           Master_SSL_CA_Path: 
+</span></span><span style=display:flex><span>              Master_SSL_Cert: 
+</span></span><span style=display:flex><span>            Master_SSL_Cipher: 
+</span></span><span style=display:flex><span>               Master_SSL_Key: 
+</span></span><span style=display:flex><span>        Seconds_Behind_Master: <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>Master_SSL_Verify_Server_Cert: No
+</span></span><span style=display:flex><span>                Last_IO_Errno: <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>                Last_IO_Error: 
+</span></span><span style=display:flex><span>               Last_SQL_Errno: <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>               Last_SQL_Error: 
+</span></span><span style=display:flex><span>  Replicate_Ignore_Server_Ids: 
+</span></span><span style=display:flex><span>             Master_Server_Id: <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>                  Master_UUID: bd047557-b20c-11ea-9961-0242ac120002
+</span></span><span style=display:flex><span>             Master_Info_File: /var/lib/mysql/master.info
+</span></span><span style=display:flex><span>                    SQL_Delay: <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>          SQL_Remaining_Delay: NULL
+</span></span><span style=display:flex><span>      Slave_SQL_Running_State: Slave has read all relay log; waiting <span style=color:#66d9ef>for</span> more updates
+</span></span><span style=display:flex><span>           Master_Retry_Count: <span style=color:#ae81ff>86400</span>
+</span></span><span style=display:flex><span>                  Master_Bind: 
+</span></span><span style=display:flex><span>      Last_IO_Error_Timestamp: 
+</span></span><span style=display:flex><span>     Last_SQL_Error_Timestamp: 
+</span></span><span style=display:flex><span>               Master_SSL_Crl: 
+</span></span><span style=display:flex><span>           Master_SSL_Crlpath: 
+</span></span><span style=display:flex><span>           Retrieved_Gtid_Set: 
+</span></span><span style=display:flex><span>            Executed_Gtid_Set: 
+</span></span><span style=display:flex><span>                Auto_Position: <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>         Replicate_Rewrite_DB: 
+</span></span><span style=display:flex><span>                 Channel_Name: 
+</span></span><span style=display:flex><span>           Master_TLS_Version: 
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span> row in set <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div><h3 id=如何分库分表>如何分库分表
+<a class=anchor href=#%e5%a6%82%e4%bd%95%e5%88%86%e5%ba%93%e5%88%86%e8%a1%a8>#</a></h3><blockquote><p>想像成是对一张表进行拆分</p><blockquote><p>垂直：就是把一些列进行拆分，一部分列移到另一个表。
+水平：就是把记录(数据)进行拆分,列的结构不变。</p></blockquote></blockquote><h4 id=垂直拆分>垂直拆分
+<a class=anchor href=#%e5%9e%82%e7%9b%b4%e6%8b%86%e5%88%86>#</a></h4><h6 id=垂直分库>垂直分库
+<a class=anchor href=#%e5%9e%82%e7%9b%b4%e5%88%86%e5%ba%93>#</a></h6><p>根据业务不同与微服务类似单独服务对应单独库</p><h6 id=垂直分表>垂直分表
+<a class=anchor href=#%e5%9e%82%e7%9b%b4%e5%88%86%e8%a1%a8>#</a></h6><p>垂直分表是基于数据库中的”列”进行，某个表字段较多，可以新建一张扩展表，将不经常用或字段长度较大的字段拆分出去到扩展表中。在字段很多的情况下（例如一个大表有100多个字段），通过”大表拆小表”，更便于开发与维护，也能避免跨页问题，MySQL底层是通过数据页存储的，一条记录占用空间过大会导致跨页，造成额外的性能开销。另外数据库以行为单位将数据加载到内存中，这样表中字段长度较短且访问频率较高，内存能加载更多的数据，命中率更高，减少了磁盘IO，从而提升了数据库性能。</p><p>拆分字段的操作建议在数据库设计阶段就做好。如果是在发展过程中拆分，则需要改写以前的查询语句，会额外带来一定的成本和风险，建议谨慎</p><h4 id=水平拆分>水平拆分
+<a class=anchor href=#%e6%b0%b4%e5%b9%b3%e6%8b%86%e5%88%86>#</a></h4><p>水平拆分（根据表内数据内在的逻辑关系，将同一个表按不同的条件分散到多个数据库或多个表中，每个表中只包含一部分数据，从而使得单个表的数据量变小，达到分布式的效果。）</p><ul><li>优缺点：<ul><li>优点：<ul><li>不存在单库数据量过大、高并发的性能瓶颈，提升系统稳定性和负载能力</li><li>应用端改造较小，不需要拆分业务模块</li><li>“冷热数据分离”实现方案</li></ul></li><li>缺点：<ul><li>跨分片事务难以保证</li><li>跨分片的复杂查询如join关联查询</li><li>数据多次扩展难度和维护量极大</li></ul></li></ul></li></ul><h3 id=分库分表会遗留的问题>分库分表会遗留的问题
+<a class=anchor href=#%e5%88%86%e5%ba%93%e5%88%86%e8%a1%a8%e4%bc%9a%e9%81%97%e7%95%99%e7%9a%84%e9%97%ae%e9%a2%98>#</a></h3><h5 id=事务问题>事务问题
+<a class=anchor href=#%e4%ba%8b%e5%8a%a1%e9%97%ae%e9%a2%98>#</a></h5><h5 id=跨表join聚合查询order-bygroup-by等问题>跨表join，聚合查询order by，group by等问题
+<a class=anchor href=#%e8%b7%a8%e8%a1%a8join%e8%81%9a%e5%90%88%e6%9f%a5%e8%af%a2order-bygroup-by%e7%ad%89%e9%97%ae%e9%a2%98>#</a></h5><p>将原本处于mysql执行的跨表查询以及聚合查询等操作提前到网关层进行聚合。比如说现在你有这样一条SQL: <code>select * from tableXX order by create_time desc limit 0,10;</code>
+则会从512张表中每张表都获取10条数据，然后再网关层就会出现512*10条数据，然后重新排序聚合提取10条数据返回给应用。带来的就是性能响应时间增加。</p><h5 id=数据倾斜问题>数据倾斜问题
+<a class=anchor href=#%e6%95%b0%e6%8d%ae%e5%80%be%e6%96%9c%e9%97%ae%e9%a2%98>#</a></h5><h5 id=分库分表下的主键id问题>分库分表下的主键id问题
+<a class=anchor href=#%e5%88%86%e5%ba%93%e5%88%86%e8%a1%a8%e4%b8%8b%e7%9a%84%e4%b8%bb%e9%94%aeid%e9%97%ae%e9%a2%98>#</a></h5><blockquote><p>分库分表下的hash数据到每个表，会存在两种情况，</p><blockquote><p>一种是数据库自增id，
+一种是分布式全局共用一处生成主键id。</p></blockquote></blockquote><p>先说数据库自增id，
+会导致我们刚才提到的假设我们现在要聚合查询，这样可能导致会出现512条id一致的数据，这样前端应用就会出现困扰。因为id是必须唯一的才能保证我们获取数据，那么我们不使用自增id，</p><blockquote><p>我们必须通过每条数据的某个值能够确定该行唯一数据，并使512张表的主键id都不一致但是有序，为什么需要补充有序？</p><blockquote><p>主键id不一致大家都知道防止冲突。
+是因为我们如果使用Innodb数据存储引擎的话底层是红黑树，那么对于连续存储的key值可以有效减少随机访问次数和IO次数提升我们查询的性能，达到每次读取page页可以预读取。</p></blockquote></blockquote><p>接下来说如何实现分布式全局主键id的几种方式：</p><ol><li><p>Sequence ID
+数据库自增长序列或字段，最常见的方式。由数据库维护，数据库唯一。
+优点：
+简单，代码方便，性能可以接受。
+数字ID天然排序，对分页或者需要排序的结果很有帮助。
+缺点：
+不同数据库语法和实现不同，数据库迁移的时候或多数据库版本支持的时候需要处理。
+在单个数据库或读写分离或一主多从的情况下，只有一个主库可以生成。有单点故障的风险。
+在性能达不到要求的情况下，比较难于扩展。
+如果遇见多个系统需要合并或者涉及到数据迁移会相当痛苦。
+分表分库的时候会有麻烦。
+优化方案：
+针对主库单点，如果有多个Master库，则每个Master库设置的起始数字不一样，步长一样，可以是Master的个数。
+比如：Master1 生成的是 1，4，7，10，Master2生成的是2,5,8,11 Master3生成的是 3,6,9,12。这样就可以有效生成集群中的唯一ID，也可以大大降低ID生成数据库操作的负载。</p></li><li><p>UUID
+常见的方式,128位。可以利用数据库也可以利用程序生成，一般来说全球唯一。
+优点：
+简单，代码方便。
+全球唯一，在遇见数据迁移，系统数据合并，或者数据库变更等情况下，可以从容应对。
+缺点：
+没有排序，无法保证趋势递增。
+UUID往往是使用字符串存储，查询的效率比较低。
+存储空间比较大，如果是海量数据库，就需要考虑存储量的问题。
+传输数据量大
+不可读。
+优化方案：
+为了解决UUID不可读，可以使用UUID to Int64的方法。</p></li><li><p>GUID
+GUID：是微软对UUID这个标准的实现。UUID还有其它各种实现，不止GUID一种。优缺点同UUID。</p></li><li><p>COMB
+COMB（combine）型是数据库特有的一种设计思想，组合的方式，保留UniqueIdentifier的前10个字节，用后6个字节表示GUID生成的时间（DateTime），将时间信息与UniqueIdentifier组合起来，在保留UniqueIdentifier的唯一性的同时增加了有序性，以此来提高索引效率。
+优点：
+解决UUID无序的问题，在其主键生成方式中提供了Comb算法(combined guid/timestamp)。保留GUID的10个字节，用另6个字节表示GUID生成的时间(DateTime)。
+性能优于UUID。</p></li><li><p>Twitter的snowflake算法
+使用41bit作为毫秒数，10bit作为机器的ID（5个bit是数据中心，5个bit的机器ID），12bit作为毫秒内的流水号（意味着每个节点在每毫秒可以产生 4096 个 ID），最后还有一个符号位，永远是0。snowflake算法可以根据自身项目的需要进行一定的修改。比如估算未来的数据中心个数，每个数据中心的机器数以及统一毫秒可以能的并发数来调整在算法中所需要的bit数。
+优点：
+不依赖于数据库，灵活方便，且性能优于数据库。
+ID按照时间在单机上是递增的。
+缺点：
+在单机上是递增的，但是由于涉及到分布式环境，每台机器上的时钟不可能完全同步，也许有时候也会出现不是全局递增的情况。</p></li></ol><h5 id=业务上涨伸缩性问题>业务上涨，伸缩性问题
+<a class=anchor href=#%e4%b8%9a%e5%8a%a1%e4%b8%8a%e6%b6%a8%e4%bc%b8%e7%bc%a9%e6%80%a7%e9%97%ae%e9%a2%98>#</a></h5><p><a href=https://blog.csdn.net/wolf_love666/article/details/82773300></a></p><p><a href=https://blog.csdn.net/wolf_love666/article/details/90444154></a></p></article><footer class=book-footer><div class="flex flex-wrap justify-between"></div><script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script></footer><div class=book-comments><script src=https://giscus.app/client.js data-repo=zput/utterances-comments data-repo-id=R_kgDOHhATGQ data-category=Announcements data-category-id=DIC_kwDOHhATGc4CPxca data-mapping=pathname data-reactions-enabled=1 data-emit-metadata=1 data-input-position=top data-theme=light data-lang=zh-CN data-loading=lazy crossorigin=anonymous async></script></div><label for=menu-control class="hidden book-menu-overlay"></label></div><aside class=book-toc><div class=book-toc-content><nav id=TableOfContents><ul><li><a href=#1mysql环境>1.MySQL环境</a><ul><li><a href=#11环境安装>1.1.环境安装</a></li><li><a href=#12安装位置>1.2.安装位置</a></li><li><a href=#13修改字符集>1.3.修改字符集</a></li><li><a href=#14配置文件>1.4.配置文件</a></li></ul></li><li><a href=#2mysql逻辑架构>2.MySQL逻辑架构</a></li><li><a href=#3存储引擎>3.存储引擎</a></li><li><a href=#18主从复制>18.主从复制</a><ul><li><a href=#181复制基本原理>18.1.复制基本原理</a></li><li><a href=#182复制基本原则>18.2.复制基本原则</a></li><li><a href=#183docker-compose>18.3.docker-compose</a><ul><li></li></ul></li><li><a href=#184一主一从配置>18.4.一主一从配置</a><ul><li><a href=#如何分库分表>如何分库分表</a></li><li><a href=#分库分表会遗留的问题>分库分表会遗留的问题</a></li></ul></li></ul></li></ul></nav></div></aside></main></body></html>

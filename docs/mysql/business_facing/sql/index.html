@@ -1,0 +1,526 @@
+<!doctype html><html lang=zh dir=ltr><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="mysql知识思维分类,浅入浅出"><meta name=theme-color content="#FFFFFF"><meta name=color-scheme content="light dark"><meta property="og:title" content="写好sql"><meta property="og:description" content="mysql知识思维分类,浅入浅出"><meta property="og:type" content="article"><meta property="og:url" content="https://zput.github.io/middleware/docs/mysql/business_facing/sql/"><meta property="article:section" content="docs"><meta property="article:published_time" content="2020-01-24T10:33:00+00:00"><meta property="article:modified_time" content="2020-01-24T10:33:00+00:00"><title>写好sql | 常用中间件分析</title><link rel=manifest href=/middleware/manifest.json><link rel=icon href=/middleware/favicon.png type=image/x-icon><link rel=stylesheet href=/middleware/book.min.76f6dbe75c94e688c018dd8b54e7f880916b14ab4cf3881b81f75d6bb916603c.css integrity="sha256-dvbb51yU5ojAGN2LVOf4gJFrFKtM84gbgfdda7kWYDw=" crossorigin=anonymous><script defer src=/middleware/flexsearch.min.js></script>
+<script defer src=/middleware/en.search.min.115cf59092a271d0b909163a313e02af51e2072349a28c07dabae756a8ace08d.js integrity="sha256-EVz1kJKicdC5CRY6MT4Cr1HiByNJoowH2rrnVqis4I0=" crossorigin=anonymous></script>
+<script defer src=/middleware/sw.min.f609352e1b128d348128bfdb614a37fe64cd10a16425cbece15ecafa5115c45a.js integrity="sha256-9gk1LhsSjTSBKL/bYUo3/mTNEKFkJcvs4V7K+lEVxFo=" crossorigin=anonymous></script></head><body dir=ltr><input type=checkbox class="hidden toggle" id=menu-control>
+<input type=checkbox class="hidden toggle" id=toc-control><main class="container flex"><aside class=book-menu><div class=book-menu-content><nav><h2 class=book-brand><a class="flex align-center" href=/middleware/><span>常用中间件分析</span></a></h2><div class=magic><div class=book-search><input type=text id=book-search-input placeholder=Search aria-label=Search maxlength=64><div class="book-search-spinner spinner hidden"></div><ul id=book-search-results></ul></div><div class=book-switch><label class=switch><input id=dark-mode-checkbox type=checkbox onchange=darkmode()>
+<span class=slider></span></label></div></div><ul><li><a href=https://zput.github.io target=_blank rel=noopener>Zput博客</a></li><li><a href=https://github.com/zput target=_blank rel=noopener>GitHub</a></li></ul><hr><ul><li><span>Mysql</span><ul><li><a href=/middleware/docs/mysql/init/>开始篇</a><ul><li><a href=/middleware/docs/mysql/init/install/>初始化</a></li></ul></li><li><a href=/middleware/docs/mysql/business_facing/>面向业务篇</a><ul><li><a href=/middleware/docs/mysql/business_facing/sql/ class=active>写好sql</a></li><li><a href=/middleware/docs/mysql/business_facing/innodb_index/>索引</a></li><li><a href=/middleware/docs/mysql/business_facing/innodb_lock/>锁</a></li></ul></li><li><span>高级篇</span><ul><li><a href=/middleware/docs/mysql/advanced/page_lock_log/>底层结构</a></li></ul></li><li><a href=/middleware/docs/mysql/MySQL/>mysql高级总结</a></li><li><a href=/middleware/docs/mysql/mysql2/>mysql总结</a></li></ul></li></ul></nav><script>(function(){var e=document.querySelector("aside .book-menu-content");addEventListener("beforeunload",function(){localStorage.setItem("menu.scrollTop",e.scrollTop)}),e.scrollTop=localStorage.getItem("menu.scrollTop")})()</script><script src=/middleware/magic.js></script>
+<script src=/middleware/dark.js></script></div></aside><div class=book-page><header class=book-header><div class="flex align-center justify-between"><label for=menu-control><img src=/middleware/svg/menu.svg class=book-icon alt=Menu></label>
+<strong>写好sql</strong>
+<label for=toc-control><img src=/middleware/svg/toc.svg class=book-icon alt="Table of Contents"></label></div><aside class="hidden clearfix"><nav id=TableOfContents><ul><li><a href=#sql>SQL</a><ul><li><a href=#sql执行顺序>SQL执行顺序</a></li><li><a href=#七种join>七种JOIN</a></li><li><a href=#查询优化>查询优化</a><ul><li><a href=#小表驱动大表>小表驱动大表</a></li><li><a href=#order-by优化>ORDER BY优化</a></li><li><a href=#gorup-by优化>GORUP BY优化</a></li><li><a href=#总结>总结</a></li></ul></li></ul></li><li><a href=#sql分析>SQL分析</a><ul><li><a href=#sql性能下降的原因>SQL性能下降的原因</a></li><li><a href=#explain>EXPLAIN</a><ul><li><a href=#explain输出字段>EXPLAIN输出字段</a></li></ul></li><li><a href=#show-profile>Show Profile</a></li><li><a href=#打开慢查询日志>打开慢查询日志</a><ul><li><a href=#案例>案例</a></li><li><a href=#日志分析工具>日志分析工具</a></li></ul></li></ul></li><li><a href=#排查慢sql>排查慢SQL</a></li><li><a href=#批量插入数据脚本>批量插入数据脚本</a><ul><li><a href=#环境准备>环境准备</a></li><li><a href=#创建函数>创建函数</a></li><li><a href=#创建存储过程>创建存储过程</a></li><li><a href=#调用存储过程>调用存储过程</a></li><li><a href=#结果>结果</a></li></ul></li></ul></nav></aside></header><article class=markdown><h1 id=sql>SQL
+<a class=anchor href=#sql>#</a></h1><h2 id=sql执行顺序>SQL执行顺序
+<a class=anchor href=#sql%e6%89%a7%e8%a1%8c%e9%a1%ba%e5%ba%8f>#</a></h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#66d9ef>select</span>              <span style=color:#75715e># 5 ----&gt;</span>
+</span></span><span style=display:flex><span>	... 
+</span></span><span style=display:flex><span>from                <span style=color:#75715e># 1</span>
+</span></span><span style=display:flex><span>	... 
+</span></span><span style=display:flex><span>where               <span style=color:#75715e># 2</span>
+</span></span><span style=display:flex><span>	.... 
+</span></span><span style=display:flex><span>group by            <span style=color:#75715e># 3</span>
+</span></span><span style=display:flex><span>	... 
+</span></span><span style=display:flex><span>having              <span style=color:#75715e># 4 ----&gt;</span>
+</span></span><span style=display:flex><span>	... 
+</span></span><span style=display:flex><span>order by            <span style=color:#75715e># 6</span>
+</span></span><span style=display:flex><span>	... 
+</span></span><span style=display:flex><span>limit               <span style=color:#75715e># 7</span>
+</span></span><span style=display:flex><span>	<span style=color:#f92672>[</span>offset<span style=color:#f92672>]</span>
+</span></span></code></pre></div><h2 id=七种join>七种JOIN
+<a class=anchor href=#%e4%b8%83%e7%a7%8djoin>#</a></h2><p><img src=https://raw.githubusercontent.com/zput/myPicLib/master/zput.github.io/20201203152719.png alt=七种JOIN></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sql data-lang=sql><span style=display:flex><span><span style=color:#75715e>/* 1 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>&lt;</span>select_list<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>FROM</span> TableA A <span style=color:#66d9ef>LEFT</span> <span style=color:#66d9ef>JOIN</span> TableB B <span style=color:#66d9ef>ON</span> A.<span style=color:#66d9ef>Key</span> <span style=color:#f92672>=</span> B.<span style=color:#66d9ef>Key</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* 2 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>&lt;</span>select_list<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>FROM</span> TableA A <span style=color:#66d9ef>RIGHT</span> <span style=color:#66d9ef>JOIN</span> TableB B <span style=color:#66d9ef>ON</span> A.<span style=color:#66d9ef>Key</span> <span style=color:#f92672>=</span> B.<span style=color:#66d9ef>Key</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* 3 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>&lt;</span>select_list<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>FROM</span> TableA A <span style=color:#66d9ef>INNER</span> <span style=color:#66d9ef>JOIN</span> TableB B <span style=color:#66d9ef>ON</span> A.<span style=color:#66d9ef>Key</span> <span style=color:#f92672>=</span> B.<span style=color:#66d9ef>Key</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* 4 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>&lt;</span>select_list<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>FROM</span> TableA A <span style=color:#66d9ef>LEFT</span> <span style=color:#66d9ef>JOIN</span> TableB B <span style=color:#66d9ef>ON</span> A.<span style=color:#66d9ef>Key</span> <span style=color:#f92672>=</span> B.<span style=color:#66d9ef>Key</span> <span style=color:#66d9ef>WHERE</span> B.<span style=color:#66d9ef>Key</span> <span style=color:#66d9ef>IS</span> <span style=color:#66d9ef>NULL</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* 5 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>&lt;</span>select_list<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>FROM</span> TableA A <span style=color:#66d9ef>RIGHT</span> <span style=color:#66d9ef>JOIN</span> TableB B <span style=color:#66d9ef>ON</span> A.<span style=color:#66d9ef>Key</span> <span style=color:#f92672>=</span> B.<span style=color:#66d9ef>Key</span> <span style=color:#66d9ef>WHERE</span> A.<span style=color:#66d9ef>Key</span> <span style=color:#66d9ef>IS</span> <span style=color:#66d9ef>NULL</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* 6 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>&lt;</span>select_list<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>FROM</span> TableA A <span style=color:#66d9ef>FULL</span> <span style=color:#66d9ef>OUTER</span> <span style=color:#66d9ef>JOIN</span> TableB B <span style=color:#66d9ef>ON</span> A.<span style=color:#66d9ef>Key</span> <span style=color:#f92672>=</span> B.<span style=color:#66d9ef>Key</span>;
+</span></span><span style=display:flex><span><span style=color:#75715e>/* MySQL不支持FULL OUTER JOIN这种语法 可以改成 1+2 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>&lt;</span>select_list<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>FROM</span> TableA A <span style=color:#66d9ef>LEFT</span> <span style=color:#66d9ef>JOIN</span> TableB B <span style=color:#66d9ef>ON</span> A.<span style=color:#66d9ef>Key</span> <span style=color:#f92672>=</span> B.<span style=color:#66d9ef>Key</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>UNION</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>&lt;</span>select_list<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>FROM</span> TableA A <span style=color:#66d9ef>RIGHT</span> <span style=color:#66d9ef>JOIN</span> TableB B <span style=color:#66d9ef>ON</span> A.<span style=color:#66d9ef>Key</span> <span style=color:#f92672>=</span> B.<span style=color:#66d9ef>Key</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* 7 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>&lt;</span>select_list<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>FROM</span> TableA A <span style=color:#66d9ef>FULL</span> <span style=color:#66d9ef>OUTER</span> <span style=color:#66d9ef>JOIN</span> TableB B <span style=color:#66d9ef>ON</span> A.<span style=color:#66d9ef>Key</span> <span style=color:#f92672>=</span> B.<span style=color:#66d9ef>Key</span> <span style=color:#66d9ef>WHERE</span> A.<span style=color:#66d9ef>Key</span> <span style=color:#66d9ef>IS</span> <span style=color:#66d9ef>NULL</span> <span style=color:#66d9ef>OR</span> B.<span style=color:#66d9ef>Key</span> <span style=color:#66d9ef>IS</span> <span style=color:#66d9ef>NULL</span>;
+</span></span><span style=display:flex><span><span style=color:#75715e>/* MySQL不支持FULL OUTER JOIN这种语法 可以改成 4+5 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>&lt;</span>select_list<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>FROM</span> TableA A <span style=color:#66d9ef>LEFT</span> <span style=color:#66d9ef>JOIN</span> TableB B <span style=color:#66d9ef>ON</span> A.<span style=color:#66d9ef>Key</span> <span style=color:#f92672>=</span> B.<span style=color:#66d9ef>Key</span> <span style=color:#66d9ef>WHERE</span> B.<span style=color:#66d9ef>Key</span> <span style=color:#66d9ef>IS</span> <span style=color:#66d9ef>NULL</span>;
+</span></span><span style=display:flex><span><span style=color:#66d9ef>UNION</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>&lt;</span>select_list<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>FROM</span> TableA A <span style=color:#66d9ef>RIGHT</span> <span style=color:#66d9ef>JOIN</span> TableB B <span style=color:#66d9ef>ON</span> A.<span style=color:#66d9ef>Key</span> <span style=color:#f92672>=</span> B.<span style=color:#66d9ef>Key</span> <span style=color:#66d9ef>WHERE</span> A.<span style=color:#66d9ef>Key</span> <span style=color:#66d9ef>IS</span> <span style=color:#66d9ef>NULL</span>;
+</span></span></code></pre></div><h2 id=查询优化>查询优化
+<a class=anchor href=#%e6%9f%a5%e8%af%a2%e4%bc%98%e5%8c%96>#</a></h2><h3 id=小表驱动大表>小表驱动大表
+<a class=anchor href=#%e5%b0%8f%e8%a1%a8%e9%a9%b1%e5%8a%a8%e5%a4%a7%e8%a1%a8>#</a></h3><blockquote><p>优化原则：对于MySQL数据库而言，永远都是小表驱动大表。</p></blockquote><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=display:flex><span><span style=color:#75715e>/**
+</span></span></span><span style=display:flex><span><span style=color:#75715e>* 举个例子：可以使用嵌套的for循环来理解小表驱动大表。
+</span></span></span><span style=display:flex><span><span style=color:#75715e>* 以下两个循环结果都是一样的，但是对于MySQL来说不一样，
+</span></span></span><span style=display:flex><span><span style=color:#75715e>* 第一种可以理解为，和MySQL建立5次连接每次查询1000次。
+</span></span></span><span style=display:flex><span><span style=color:#75715e>* 第一种可以理解为，和MySQL建立1000次连接每次查询5次。
+</span></span></span><span style=display:flex><span><span style=color:#75715e>*/</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>for</span><span style=color:#f92672>(</span><span style=color:#66d9ef>int</span> i <span style=color:#f92672>=</span> 1<span style=color:#f92672>;</span> i <span style=color:#f92672>&lt;=</span> 5<span style=color:#f92672>;</span> i <span style=color:#f92672>++){</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>for</span><span style=color:#f92672>(</span><span style=color:#66d9ef>int</span> j <span style=color:#f92672>=</span> 1<span style=color:#f92672>;</span> j <span style=color:#f92672>&lt;=</span> 1000<span style=color:#f92672>;</span> j<span style=color:#f92672>++){</span>
+</span></span><span style=display:flex><span>        
+</span></span><span style=display:flex><span>    <span style=color:#f92672>}</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>}</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span><span style=color:#66d9ef>for</span><span style=color:#f92672>(</span><span style=color:#66d9ef>int</span> i <span style=color:#f92672>=</span> 1<span style=color:#f92672>;</span> i <span style=color:#f92672>&lt;=</span> 1000<span style=color:#f92672>;</span> i <span style=color:#f92672>++){</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>for</span><span style=color:#f92672>(</span><span style=color:#66d9ef>int</span> j <span style=color:#f92672>=</span> 1<span style=color:#f92672>;</span> j <span style=color:#f92672>&lt;=</span> 5<span style=color:#f92672>;</span> j<span style=color:#f92672>++){</span>
+</span></span><span style=display:flex><span>        
+</span></span><span style=display:flex><span>    <span style=color:#f92672>}</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>}</span>
+</span></span></code></pre></div><blockquote><p>IN和EXISTS</p></blockquote><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sql data-lang=sql><span style=display:flex><span><span style=color:#75715e>/* 优化原则：小表驱动大表，即小的数据集驱动大的数据集 */</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* IN适合B表比A表数据小的情况*/</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>FROM</span> <span style=color:#f92672>`</span>A<span style=color:#f92672>`</span> <span style=color:#66d9ef>WHERE</span> <span style=color:#f92672>`</span>id<span style=color:#f92672>`</span> <span style=color:#66d9ef>IN</span> (<span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>`</span>id<span style=color:#f92672>`</span> <span style=color:#66d9ef>FROM</span> <span style=color:#f92672>`</span>B<span style=color:#f92672>`</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* EXISTS适合B表比A表数据大的情况 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>FROM</span> <span style=color:#f92672>`</span>A<span style=color:#f92672>`</span> <span style=color:#66d9ef>WHERE</span> <span style=color:#66d9ef>EXISTS</span> (<span style=color:#66d9ef>SELECT</span> <span style=color:#ae81ff>1</span> <span style=color:#66d9ef>FROM</span> <span style=color:#f92672>`</span>B<span style=color:#f92672>`</span> <span style=color:#66d9ef>WHERE</span> <span style=color:#f92672>`</span>B<span style=color:#f92672>`</span>.id <span style=color:#f92672>=</span> <span style=color:#f92672>`</span>A<span style=color:#f92672>`</span>.id);
+</span></span></code></pre></div><p><strong>EXISTS：</strong></p><ul><li>语法：<code>SELECT....FROM tab WHERE EXISTS(subquery);</code>该语法可以理解为：</li><li>该语法可以理解为：将主查询的数据，放到子查询中做条件验证，根据验证结果（<code>true</code>或是<code>false</code>）来决定主查询的数据结果是否得以保留。</li></ul><p><strong>提示：</strong></p><ul><li><code>EXISTS(subquery)</code>子查询只返回<code>true</code>或者<code>false</code>，因此子查询中的<code>SELECT *</code>可以是<code>SELECT 1 OR SELECT X</code>，它们并没有区别。</li><li><code>EXISTS(subquery)</code>子查询的实际执行过程可能经过了优化而不是我们理解上的逐条对比，如果担心效率问题，可进行实际检验以确定是否有效率问题。</li><li><code>EXISTS(subquery)</code>子查询往往也可以用条件表达式，其他子查询或者<code>JOIN</code>替代，何种最优需要具体问题具体分析。</li></ul><h3 id=order-by优化>ORDER BY优化
+<a class=anchor href=#order-by%e4%bc%98%e5%8c%96>#</a></h3><blockquote><p>数据准备</p></blockquote><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sql data-lang=sql><span style=display:flex><span><span style=color:#66d9ef>CREATE</span> <span style=color:#66d9ef>TABLE</span> <span style=color:#f92672>`</span>talA<span style=color:#f92672>`</span>(
+</span></span><span style=display:flex><span><span style=color:#f92672>`</span>age<span style=color:#f92672>`</span> INT,
+</span></span><span style=display:flex><span><span style=color:#f92672>`</span>birth<span style=color:#f92672>`</span> <span style=color:#66d9ef>TIMESTAMP</span> <span style=color:#66d9ef>NOT</span> <span style=color:#66d9ef>NULL</span> <span style=color:#66d9ef>DEFAULT</span> <span style=color:#66d9ef>CURRENT_TIMESTAMP</span>
+</span></span><span style=display:flex><span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>INSERT</span> <span style=color:#66d9ef>INTO</span> <span style=color:#f92672>`</span>talA<span style=color:#f92672>`</span>(<span style=color:#f92672>`</span>age<span style=color:#f92672>`</span>) <span style=color:#66d9ef>VALUES</span>(<span style=color:#ae81ff>18</span>);
+</span></span><span style=display:flex><span><span style=color:#66d9ef>INSERT</span> <span style=color:#66d9ef>INTO</span> <span style=color:#f92672>`</span>talA<span style=color:#f92672>`</span>(<span style=color:#f92672>`</span>age<span style=color:#f92672>`</span>) <span style=color:#66d9ef>VALUES</span>(<span style=color:#ae81ff>19</span>);
+</span></span><span style=display:flex><span><span style=color:#66d9ef>INSERT</span> <span style=color:#66d9ef>INTO</span> <span style=color:#f92672>`</span>talA<span style=color:#f92672>`</span>(<span style=color:#f92672>`</span>age<span style=color:#f92672>`</span>) <span style=color:#66d9ef>VALUES</span>(<span style=color:#ae81ff>20</span>);
+</span></span><span style=display:flex><span><span style=color:#66d9ef>INSERT</span> <span style=color:#66d9ef>INTO</span> <span style=color:#f92672>`</span>talA<span style=color:#f92672>`</span>(<span style=color:#f92672>`</span>age<span style=color:#f92672>`</span>) <span style=color:#66d9ef>VALUES</span>(<span style=color:#ae81ff>21</span>);
+</span></span><span style=display:flex><span><span style=color:#66d9ef>INSERT</span> <span style=color:#66d9ef>INTO</span> <span style=color:#f92672>`</span>talA<span style=color:#f92672>`</span>(<span style=color:#f92672>`</span>age<span style=color:#f92672>`</span>) <span style=color:#66d9ef>VALUES</span>(<span style=color:#ae81ff>22</span>);
+</span></span><span style=display:flex><span><span style=color:#66d9ef>INSERT</span> <span style=color:#66d9ef>INTO</span> <span style=color:#f92672>`</span>talA<span style=color:#f92672>`</span>(<span style=color:#f92672>`</span>age<span style=color:#f92672>`</span>) <span style=color:#66d9ef>VALUES</span>(<span style=color:#ae81ff>23</span>);
+</span></span><span style=display:flex><span><span style=color:#66d9ef>INSERT</span> <span style=color:#66d9ef>INTO</span> <span style=color:#f92672>`</span>talA<span style=color:#f92672>`</span>(<span style=color:#f92672>`</span>age<span style=color:#f92672>`</span>) <span style=color:#66d9ef>VALUES</span>(<span style=color:#ae81ff>24</span>);
+</span></span><span style=display:flex><span><span style=color:#66d9ef>INSERT</span> <span style=color:#66d9ef>INTO</span> <span style=color:#f92672>`</span>talA<span style=color:#f92672>`</span>(<span style=color:#f92672>`</span>age<span style=color:#f92672>`</span>) <span style=color:#66d9ef>VALUES</span>(<span style=color:#ae81ff>25</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* 创建索引 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>CREATE</span> <span style=color:#66d9ef>INDEX</span> idx_talA_age_birth <span style=color:#66d9ef>ON</span> <span style=color:#f92672>`</span>talA<span style=color:#f92672>`</span>(<span style=color:#f92672>`</span>age<span style=color:#f92672>`</span>, <span style=color:#f92672>`</span>birth<span style=color:#f92672>`</span>);
+</span></span></code></pre></div><blockquote><p>案例</p></blockquote><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sql data-lang=sql><span style=display:flex><span><span style=color:#75715e>/* 1.使用索引进行排序了 不会产生Using filesort */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>EXPLAIN</span> <span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>FROM</span> <span style=color:#f92672>`</span>talA<span style=color:#f92672>`</span> <span style=color:#66d9ef>WHERE</span> <span style=color:#f92672>`</span>age<span style=color:#f92672>`</span> <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>20</span> <span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> <span style=color:#f92672>`</span>age<span style=color:#f92672>`</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* 2.使用索引进行排序了 不会产生Using filesort */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>EXPLAIN</span> <span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>FROM</span> <span style=color:#f92672>`</span>talA<span style=color:#f92672>`</span> <span style=color:#66d9ef>WHERE</span> <span style=color:#f92672>`</span>age<span style=color:#f92672>`</span> <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>20</span> <span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> <span style=color:#f92672>`</span>age<span style=color:#f92672>`</span>,<span style=color:#f92672>`</span>birth<span style=color:#f92672>`</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* 3.没有使用索引进行排序 产生了Using filesort */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>EXPLAIN</span> <span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>FROM</span> <span style=color:#f92672>`</span>talA<span style=color:#f92672>`</span> <span style=color:#66d9ef>WHERE</span> <span style=color:#f92672>`</span>age<span style=color:#f92672>`</span> <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>20</span> <span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> <span style=color:#f92672>`</span>birth<span style=color:#f92672>`</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* 4.没有使用索引进行排序 产生了Using filesort */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>EXPLAIN</span> <span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>FROM</span> <span style=color:#f92672>`</span>talA<span style=color:#f92672>`</span> <span style=color:#66d9ef>WHERE</span> <span style=color:#f92672>`</span>age<span style=color:#f92672>`</span> <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>20</span> <span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> <span style=color:#f92672>`</span>birth<span style=color:#f92672>`</span>,<span style=color:#f92672>`</span>age<span style=color:#f92672>`</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* 5.没有使用索引进行排序 产生了Using filesort */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>EXPLAIN</span> <span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>FROM</span> <span style=color:#f92672>`</span>talA<span style=color:#f92672>`</span> <span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> <span style=color:#f92672>`</span>birth<span style=color:#f92672>`</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* 6.没有使用索引进行排序 产生了Using filesort */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>EXPLAIN</span> <span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>FROM</span> <span style=color:#f92672>`</span>talA<span style=color:#f92672>`</span> <span style=color:#66d9ef>WHERE</span> <span style=color:#f92672>`</span>birth<span style=color:#f92672>`</span> <span style=color:#f92672>&gt;</span> <span style=color:#e6db74>&#39;2020-08-04 07:42:21&#39;</span> <span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> <span style=color:#f92672>`</span>birth<span style=color:#f92672>`</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* 7.使用索引进行排序了 不会产生Using filesort */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>EXPLAIN</span> <span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>FROM</span> <span style=color:#f92672>`</span>talA<span style=color:#f92672>`</span> <span style=color:#66d9ef>WHERE</span> <span style=color:#f92672>`</span>birth<span style=color:#f92672>`</span> <span style=color:#f92672>&gt;</span> <span style=color:#e6db74>&#39;2020-08-04 07:42:21&#39;</span> <span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> <span style=color:#f92672>`</span>age<span style=color:#f92672>`</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* 8.没有使用索引进行排序 产生了Using filesort */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>EXPLAIN</span> <span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>FROM</span> <span style=color:#f92672>`</span>talA<span style=color:#f92672>`</span> <span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> <span style=color:#f92672>`</span>age<span style=color:#f92672>`</span> <span style=color:#66d9ef>ASC</span>, <span style=color:#f92672>`</span>birth<span style=color:#f92672>`</span> <span style=color:#66d9ef>DESC</span>;
+</span></span></code></pre></div><p><code>ORDER BY</code>子句，尽量使用索引排序，避免使用<code>Using filesort</code>排序。</p><p>MySQL支持两种方式的排序，<code>FileSort</code>和<code>Index</code>，<code>Index</code>的效率高，它指MySQL扫描索引本身完成排序。<code>FileSort</code>方式效率较低。</p><p><code>ORDER BY</code>满足两情况，会使用<code>Index</code>方式排序：</p><ul><li><code>ORDER BY</code>语句使用索引最左前列。</li><li>使用<code>WHERE</code>子句与<code>ORDER BY</code>子句条件列组合满足索引最左前列。</li></ul><p><strong>结论：尽可能在索引列上完成排序操作，遵照索引建的最佳左前缀原则。</strong></p><blockquote><p>如果不在索引列上，File Sort有两种算法：MySQL就要启动双路排序算法和单路排序算法</p></blockquote><p>1、双路排序算法：MySQL4.1之前使用双路排序，字面意思就是两次扫描磁盘，最终得到数据，读取<strong>行指针</strong>和<strong>待<code>ORDER BY</code>列</strong>，対他们进行排序，然后扫描已经排序好的列表，按照列表中的值重新从列表中读取对应的数据输出。<strong>一句话，从磁盘取排序字段，在<code>buffer</code>中进行排序，再从磁盘取其他字段。</strong></p><p>取一批数据，要对磁盘进行两次扫描，众所周知，IO是很耗时的，所以在MySQL4.1之后，出现了改进的算法，就是单路排序算法。</p><p>2、单路排序算法：从磁盘读取查询需要的所有列，按照<code>ORDER BY</code>列在<code>buffer</code>対它们进行排序，然后扫描排序后的列表进行输出，它的效率更快一些，避免了第二次读取数据。并且把随机IO变成了顺序IO，但是它会使用更多的空间，因为它把每一行都保存在内存中了。</p><p>由于单路排序算法是后出的，总体而言效率好过双路排序算法。</p><p>但是单路排序算法有问题：如果<code>SortBuffer</code>缓冲区太小，导致从磁盘中读取所有的列不能完全保存在<code>SortBuffer</code>缓冲区中，这时候单路复用算法就会出现问题，反而性能不如双路复用算法。</p><p><strong>单路复用算法的优化策略：</strong></p><ul><li>增大<code>sort_buffer_size</code>参数的设置。</li><li>增大<code>max_length_for_sort_data</code>参数的设置。</li></ul><p><strong>提高ORDER BY排序的速度：</strong></p><ul><li><p><code>ORDER BY</code>时使用<code>SELECT *</code>是大忌，查什么字段就写什么字段，这点非常重要。在这里的影响是：</p><ul><li>当查询的字段大小总和小于<code>max_length_for_sort_data</code>而且排序字段不是<code>TEXT|BLOB</code>类型时，会使用单路排序算法，否则使用多路排序算法。</li><li>两种排序算法的数据都有可能超出<code>sort_buffer</code>缓冲区的容量，超出之后，会创建<code>tmp</code>临时文件进行合并排序，导致多次IO，但是单路排序算法的风险会更大一些，所以要增大<code>sort_buffer_size</code>参数的设置。</li></ul></li><li><p>尝试提高<code>sort_buffer_size</code>：不管使用哪种算法，提高这个参数都会提高效率，当然，要根据系统的能力去提高，因为这个参数是针对每个进程的。</p></li><li><p>尝试提高<code>max_length_for_sort_data</code>：提高这个参数，会增加用单路排序算法的概率。但是如果设置的太高，数据总容量<code>sort_buffer_size</code>的概率就增大，明显症状是高的磁盘IO活动和低的处理器使用率。</p></li></ul><h3 id=gorup-by优化>GORUP BY优化
+<a class=anchor href=#gorup-by%e4%bc%98%e5%8c%96>#</a></h3><ul><li><p><code>GROUP BY</code>实质是先排序后进行分组，遵照索引建的最佳左前缀。</p></li><li><p>当无法使用索引列时，会使用<code>Using filesort</code>进行排序，增大<code>max_length_for_sort_data</code>参数的设置和增大<code>sort_buffer_size</code>参数的设置，会提高性能。</p></li><li><p><code>WHERE</code>执行顺序高于<code>HAVING</code>，能写在<code>WHERE</code>限定条件里的就不要写在<code>HAVING</code>中了。</p></li></ul><h3 id=总结>总结
+<a class=anchor href=#%e6%80%bb%e7%bb%93>#</a></h3><p><strong>为排序使用索引</strong></p><ul><li>MySQL两种排序方式：<code>Using filesort</code>和<code>Index</code>扫描有序索引排序。</li><li>MySQL能为排序与查询使用相同的索引，创建的索引既可以用于排序也可以用于查询。</li></ul><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sql data-lang=sql><span style=display:flex><span><span style=color:#75715e>/* 创建a b c三个字段的索引 */</span>
+</span></span><span style=display:flex><span>idx_table_a_b_c(a, b, <span style=color:#66d9ef>c</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* 1.ORDER BY 能使用索引最左前缀 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> a;
+</span></span><span style=display:flex><span><span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> a, b;
+</span></span><span style=display:flex><span><span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> a, b, <span style=color:#66d9ef>c</span>;
+</span></span><span style=display:flex><span><span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> a <span style=color:#66d9ef>DESC</span>, b <span style=color:#66d9ef>DESC</span>, <span style=color:#66d9ef>c</span> <span style=color:#66d9ef>DESC</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* 2.如果WHERE子句中使用索引的最左前缀定义为常量，则ORDER BY能使用索引 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>WHERE</span> a <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;Ringo&#39;</span> <span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> b, <span style=color:#66d9ef>c</span>;
+</span></span><span style=display:flex><span><span style=color:#66d9ef>WHERE</span> a <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;Ringo&#39;</span> <span style=color:#66d9ef>AND</span> b <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;Tangs&#39;</span> <span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> <span style=color:#66d9ef>c</span>;
+</span></span><span style=display:flex><span><span style=color:#66d9ef>WHERE</span> a <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;Ringo&#39;</span> <span style=color:#66d9ef>AND</span> b <span style=color:#f92672>&gt;</span> <span style=color:#ae81ff>2000</span> <span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> b, <span style=color:#66d9ef>c</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* 3.不能使用索引进行排序 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> a <span style=color:#66d9ef>ASC</span>, b <span style=color:#66d9ef>DESC</span>, <span style=color:#66d9ef>c</span> <span style=color:#66d9ef>DESC</span>;  <span style=color:#75715e>/* 排序不一致 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>WHERE</span> <span style=color:#66d9ef>g</span> <span style=color:#f92672>=</span> const <span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> b, <span style=color:#66d9ef>c</span>;   <span style=color:#75715e>/* 丢失a字段索引 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>WHERE</span> a <span style=color:#f92672>=</span> const <span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> <span style=color:#66d9ef>c</span>;      <span style=color:#75715e>/* 丢失b字段索引 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>WHERE</span> a <span style=color:#f92672>=</span> const <span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> a, d;   <span style=color:#75715e>/* d字段不是索引的一部分 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>WHERE</span> a <span style=color:#66d9ef>IN</span> (...) <span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> b, <span style=color:#66d9ef>c</span>;  <span style=color:#75715e>/* 对于排序来说，多个相等条件(a=1 or a=2)也是范围查询 */</span>
+</span></span></code></pre></div><h1 id=sql分析>SQL分析
+<a class=anchor href=#sql%e5%88%86%e6%9e%90>#</a></h1><h2 id=sql性能下降的原因>SQL性能下降的原因
+<a class=anchor href=#sql%e6%80%a7%e8%83%bd%e4%b8%8b%e9%99%8d%e7%9a%84%e5%8e%9f%e5%9b%a0>#</a></h2><ul><li>查询语句写的差。<ul><li>关联 查询太多<code>join</code>（设计缺陷或者不得已的需求）。</li></ul></li><li>索引失效：索引建了，但是没有用上。</li><li><del>服务器调优以及各个参数的设置（缓冲、线程数等）。</del></li></ul><h2 id=explain>EXPLAIN
+<a class=anchor href=#explain>#</a></h2><blockquote><p>EXPLAIN是什么？</p></blockquote><p>EXPLAIN：SQL的执行计划，使用EXPLAIN关键字可以模拟优化器执行SQL查询语句，从而知道MySQL是如何处理SQL语句的。</p><blockquote><p>EXPLAIN怎么使用？</p></blockquote><p>语法：<code>explain</code> + <code>SQL</code>。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>mysql&gt; explain <span style=color:#66d9ef>select</span> * from pms_category <span style=color:#ae81ff>\G</span>;
+</span></span><span style=display:flex><span>*************************** 1. row ***************************
+</span></span><span style=display:flex><span>           id: <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>  select_type: SIMPLE
+</span></span><span style=display:flex><span>        table: pms_category
+</span></span><span style=display:flex><span>   partitions: NULL
+</span></span><span style=display:flex><span>         type: ALL
+</span></span><span style=display:flex><span>possible_keys: NULL
+</span></span><span style=display:flex><span>          key: NULL
+</span></span><span style=display:flex><span>      key_len: NULL
+</span></span><span style=display:flex><span>          ref: NULL
+</span></span><span style=display:flex><span>         rows: <span style=color:#ae81ff>1425</span>
+</span></span><span style=display:flex><span>     filtered: 100.00
+</span></span><span style=display:flex><span>        Extra: NULL
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span> row in set, <span style=color:#ae81ff>1</span> warning <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div><blockquote><p>EXPLAIN能干嘛？</p></blockquote><p>可以查看以下信息：</p><ul><li><code>id</code>：表的读取顺序。</li><li><code>select_type</code>: 查询（select；query）类型.</li><li><code>type</code>：访问类型排列。The type column of EXPLAIN output describes how tables are joined.</li><li><code>possible_keys</code>：哪些索引可以使用。</li><li><code>key</code>：哪些索引被实际使用。</li><li><code>ref</code>：表之间的引用。</li><li><code>rows</code>：每张表有多少行被优化器查询。</li><li><code>Extra</code>：包含不适合在其他列中显示但十分重要的额外信息。</li></ul><h3 id=explain输出字段>EXPLAIN输出字段
+<a class=anchor href=#explain%e8%be%93%e5%87%ba%e5%ad%97%e6%ae%b5>#</a></h3><p><a href=https://dev.mysql.com/doc/refman/5.7/en/explain-output.html>官方解释</a></p><h4 id=id>id
+<a class=anchor href=#id>#</a></h4><p><code>id</code>：表的读取和加载顺序。</p><p>值有以下三种情况：</p><ul><li><code>id</code>相同，执行顺序由上至下。</li><li><code>id</code>不同，如果是子查询，id的序号会递增，<strong>id值越大优先级越高，越先被执行。</strong></li><li><code>id</code>相同不同，同时存在。<strong>永远是id大的优先级最高，id相等的时候顺序执行。</strong></li></ul><h4 id=select_type>select_type
+<a class=anchor href=#select_type>#</a></h4><p><code>select_type</code>：查询（select；query）类型.，主要是用于区别，普通查询、联合查询、子查询等的复杂查询。</p><ul><li><code>SIMPLE</code>：简单的<code>SELECT</code>查询，查询中不包含子查询或者<code>UNION </code>。</li><li><code>PRIMARY</code>：查询中如果包含任何复杂的子部分，最外层查询则被标记为<code>PRIMARY</code>。</li><li><code>SUBQUERY</code>：在<code>SELECT</code>或者<code>WHERE</code>子句中包含了子查询。</li><li><code>DERIVED</code>：在<code>FROM</code>子句中包含的子查询被标记为<code>DERIVED(衍生)</code>，MySQL会递归执行这些子查询，把结果放在临时表中。</li><li><code>UNION</code>：如果第二个<code>SELECT</code>出现在<code>UNION</code>之后，则被标记为<code>UNION</code>；若<code>UNION</code>包含在<code>FROM</code>子句的子查询中，外层<code>SELECT</code>将被标记为<code>DERIVED</code>。</li><li><code>UNION RESULT</code>：从<code>UNION</code>表获取结果的<code>SELECT</code>。</li></ul><h4 id=type>type
+<a class=anchor href=#type>#</a></h4><p><code>type</code>：访问类型排列。</p><p><strong>从最好到最差依次是：</strong><code>system</code>><code>const</code>><code>eq_ref</code>><code>ref</code>><code>range</code>><code>index</code>><code>ALL</code>。除了<code>ALL</code>没有用到索引，其他级别都用到索引了。</p><p>一般来说，得保证查询至少达到<code>range</code>级别，最好达到<code>ref</code>。</p><ul><li><p><code>system</code>：表只有一行记录（等于系统表），这是<code>const</code>类型的特例，平时不会出现，这个也可以忽略不计。</p></li><li><p><code>const</code>：表示通过索引一次就找到了，<code>const</code>用于比较<code>primary key</code>或者<code>unique</code>索引。因为只匹配一行数据，所以很快。如将主键置于<code>where</code>列表中，MySQL就能将该查询转化为一个常量。</p></li><li><p><code>eq_ref</code>：唯一性索引扫描，读取本表中和关联表表中的每行组合成的一行，查出来只有一条记录。除 了 <code>system</code> 和<code> const</code> 类型之外, 这是最好的联接类型。</p></li><li><p><code>ref</code>：非唯一性索引扫描，返回本表和关联表某个值匹配的所有行，查出来有多条记录。</p></li><li><p><code>range</code>：只检索给定范围的行，一般就是在<code>WHERE</code>语句中出现了<code>BETWEEN</code>、<code>&lt; ></code>、<code>in</code>等的查询。这种范围扫描索引比全表扫描要好，因为它只需要开始于索引树的某一点，而结束于另一点，不用扫描全部索引。</p></li><li><p><code>index</code>：<code>Full Index Scan</code>，全索引扫描，<code>index</code>和<code>ALL</code>的区别为<code>index</code>类型只遍历索引树。<strong>也就是说虽然<code>ALL</code>和<code>index</code>都是读全表，但是<code>index</code>是从索引中读的，<code>ALL</code>是从磁盘中读取的。</strong></p></li><li><p><code>ALL</code>：<code>Full Table Scan</code>，没有用到索引，全表扫描。</p></li></ul><h4 id=possible_keys-和-key>possible_keys 和 key
+<a class=anchor href=#possible_keys-%e5%92%8c-key>#</a></h4><p><code>possible_keys</code>：显示可能应用在这张表中的索引，一个或者多个。查询涉及到的字段上若存在索引，则该索引将被列出，<strong>但不一定被查询实际使用。</strong></p><p><code>key</code>：实际使用的索引。如果为<code>NULL</code>，则没有使用索引。查询中如果使用了覆盖索引，则该索引仅仅出现在<code>key</code>列表中。</p><blockquote><p>key_len</p></blockquote><p><code>key_len</code>：表示索引中使用的字节数，可通过该列计算查询中使用的索引的长度。<code>key_len</code>显示的值为索引字段的最大可能长度，并非实际使用长度，即<code>key_len</code>是根据表定义计算而得，不是通过表内检索出的。在不损失精度的情况下，长度越短越好。</p><p><code>key_len</code>计算规则：<strong>
+<a href=https://blog.csdn.net/qq_34930488/article/details/102931490>https://blog.csdn.net/qq_34930488/article/details/102931490</a></strong></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>mysql&gt; desc pms_category;
+</span></span><span style=display:flex><span>+---------------+------------+------+-----+---------+----------------+
+</span></span><span style=display:flex><span>| Field         | Type       | Null | Key | Default | Extra          |
+</span></span><span style=display:flex><span>+---------------+------------+------+-----+---------+----------------+
+</span></span><span style=display:flex><span>| cat_id        | bigint<span style=color:#f92672>(</span>20<span style=color:#f92672>)</span> | NO   | PRI | NULL    | auto_increment |
+</span></span><span style=display:flex><span>| name          | char<span style=color:#f92672>(</span>50<span style=color:#f92672>)</span>   | YES  |     | NULL    |                |
+</span></span><span style=display:flex><span>| parent_cid    | bigint<span style=color:#f92672>(</span>20<span style=color:#f92672>)</span> | YES  |     | NULL    |                |
+</span></span><span style=display:flex><span>| cat_level     | int<span style=color:#f92672>(</span>11<span style=color:#f92672>)</span>    | YES  |     | NULL    |                |
+</span></span><span style=display:flex><span>| show_status   | tinyint<span style=color:#f92672>(</span>4<span style=color:#f92672>)</span> | YES  |     | NULL    |                |
+</span></span><span style=display:flex><span>| sort          | int<span style=color:#f92672>(</span>11<span style=color:#f92672>)</span>    | YES  |     | NULL    |                |
+</span></span><span style=display:flex><span>| icon          | char<span style=color:#f92672>(</span>255<span style=color:#f92672>)</span>  | YES  |     | NULL    |                |
+</span></span><span style=display:flex><span>| product_unit  | char<span style=color:#f92672>(</span>50<span style=color:#f92672>)</span>   | YES  |     | NULL    |                |
+</span></span><span style=display:flex><span>| product_count | int<span style=color:#f92672>(</span>11<span style=color:#f92672>)</span>    | YES  |     | NULL    |                |
+</span></span><span style=display:flex><span>+---------------+------------+------+-----+---------+----------------+
+</span></span><span style=display:flex><span><span style=color:#ae81ff>9</span> rows in set <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>mysql&gt; explain <span style=color:#66d9ef>select</span> cat_id from pms_category where cat_id between <span style=color:#ae81ff>10</span> and <span style=color:#ae81ff>20</span> <span style=color:#ae81ff>\G</span>;
+</span></span><span style=display:flex><span>*************************** 1. row ***************************
+</span></span><span style=display:flex><span>           id: <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>  select_type: SIMPLE
+</span></span><span style=display:flex><span>        table: pms_category
+</span></span><span style=display:flex><span>   partitions: NULL
+</span></span><span style=display:flex><span>         type: range
+</span></span><span style=display:flex><span>possible_keys: PRIMARY
+</span></span><span style=display:flex><span>          key: PRIMARY  <span style=color:#75715e># 用到了主键索引，通过查看表结构知道，cat_id是bigint类型，占用8个字节</span>
+</span></span><span style=display:flex><span>      key_len: <span style=color:#ae81ff>8</span>        <span style=color:#75715e># 这里只用到了cat_id主键索引，所以长度就是8！</span>
+</span></span><span style=display:flex><span>          ref: NULL
+</span></span><span style=display:flex><span>         rows: <span style=color:#ae81ff>11</span>
+</span></span><span style=display:flex><span>     filtered: 100.00
+</span></span><span style=display:flex><span>        Extra: Using where; Using index
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span> row in set, <span style=color:#ae81ff>1</span> warning <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div><h4 id=ref>ref
+<a class=anchor href=#ref>#</a></h4><p><code>ref</code>：显示索引的哪一列被使用了，如果可能的话，是一个常数。哪些列或常量被用于查找索引列上的值。</p><h4 id=rows>rows
+<a class=anchor href=#rows>#</a></h4><p><code>rows</code>：根据表统计信息及索引选用情况，大致估算出找到所需的记录需要读取的行数。</p><h4 id=extra>Extra
+<a class=anchor href=#extra>#</a></h4><p><code>Extra</code>：包含不适合在其他列中显示但十分重要的额外信息。</p><ul><li><code>Using filesort</code>：说明MySQL会对数据使用一个外部的索引排序，而不是按照表内的索引顺序进行读取。<strong>MySQL中无法利用索引完成的排序操作成为"文件内排序"。</strong></li></ul><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># 排序没有使用索引</span>
+</span></span><span style=display:flex><span>mysql&gt; explain <span style=color:#66d9ef>select</span> name from pms_category where name<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;Tangs&#39;</span> order by cat_level <span style=color:#ae81ff>\G</span>
+</span></span><span style=display:flex><span>*************************** 1. row ***************************
+</span></span><span style=display:flex><span>           id: <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>  select_type: SIMPLE
+</span></span><span style=display:flex><span>        table: pms_category
+</span></span><span style=display:flex><span>   partitions: NULL
+</span></span><span style=display:flex><span>         type: ref
+</span></span><span style=display:flex><span>possible_keys: idx_name_parentCid_catLevel
+</span></span><span style=display:flex><span>          key: idx_name_parentCid_catLevel
+</span></span><span style=display:flex><span>      key_len: <span style=color:#ae81ff>201</span>
+</span></span><span style=display:flex><span>          ref: const
+</span></span><span style=display:flex><span>         rows: <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>     filtered: 100.00
+</span></span><span style=display:flex><span>        Extra: Using where; Using index; Using filesort
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span> row in set, <span style=color:#ae81ff>1</span> warning <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 排序使用到了索引</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>mysql&gt; explain <span style=color:#66d9ef>select</span> name from pms_category where name<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;Tangs&#39;</span> order by parent_cid,cat_level<span style=color:#ae81ff>\G</span>
+</span></span><span style=display:flex><span>*************************** 1. row ***************************
+</span></span><span style=display:flex><span>           id: <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>  select_type: SIMPLE
+</span></span><span style=display:flex><span>        table: pms_category
+</span></span><span style=display:flex><span>   partitions: NULL
+</span></span><span style=display:flex><span>         type: ref
+</span></span><span style=display:flex><span>possible_keys: idx_name_parentCid_catLevel
+</span></span><span style=display:flex><span>          key: idx_name_parentCid_catLevel
+</span></span><span style=display:flex><span>      key_len: <span style=color:#ae81ff>201</span>
+</span></span><span style=display:flex><span>          ref: const
+</span></span><span style=display:flex><span>         rows: <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>     filtered: 100.00
+</span></span><span style=display:flex><span>        Extra: Using where; Using index
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span> row in set, <span style=color:#ae81ff>1</span> warning <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div><ul><li><p><code>Using temporary</code>：使用了临时表保存中间结果，MySQL在対查询结果排序时使用了临时表。常见于排序<code>order by</code>和分组查询<code>group by</code>。<strong>临时表対系统性能损耗很大。</strong></p></li><li><p><code>Using index</code>：表示相应的<code>SELECT</code>操作中使用了覆盖索引，避免访问了表的数据行，效率不错！如果同时出现<code>Using where</code>，表示索引被用来执行索引键值的查找；如果没有同时出现<code>Using where</code>，表明索引用来读取数据而非执行查找动作。</p></li></ul><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># 覆盖索引</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 就是select的数据列只用从索引中就能够取得，不必从数据表中读取，换句话说查询列要被所使用的索引覆盖。</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 注意：如果要使用覆盖索引，一定不能写SELECT *，要写出具体的字段。</span>
+</span></span><span style=display:flex><span>mysql&gt; explain <span style=color:#66d9ef>select</span> cat_id from pms_category <span style=color:#ae81ff>\G</span>;
+</span></span><span style=display:flex><span>*************************** 1. row ***************************
+</span></span><span style=display:flex><span>           id: <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>  select_type: SIMPLE
+</span></span><span style=display:flex><span>        table: pms_category
+</span></span><span style=display:flex><span>   partitions: NULL
+</span></span><span style=display:flex><span>         type: index
+</span></span><span style=display:flex><span>possible_keys: NULL       
+</span></span><span style=display:flex><span>          key: PRIMARY
+</span></span><span style=display:flex><span>      key_len: <span style=color:#ae81ff>8</span>
+</span></span><span style=display:flex><span>          ref: NULL
+</span></span><span style=display:flex><span>         rows: <span style=color:#ae81ff>1425</span>
+</span></span><span style=display:flex><span>     filtered: 100.00
+</span></span><span style=display:flex><span>        Extra: Using index   <span style=color:#75715e># select的数据列只用从索引中就能够取得，不必从数据表中读取   </span>
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span> row in set, <span style=color:#ae81ff>1</span> warning <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div><ul><li><code>Using where</code>：表明使用了<code>WHERE</code>过滤。</li><li><code>Using join buffer</code>：使用了连接缓存。</li><li><code>impossible where</code>：<code>WHERE</code>子句的值总是false，不能用来获取任何元组。</li></ul><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>mysql&gt; explain <span style=color:#66d9ef>select</span> name from pms_category where name <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;zs&#39;</span> and name <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;ls&#39;</span><span style=color:#ae81ff>\G</span>
+</span></span><span style=display:flex><span>*************************** 1. row ***************************
+</span></span><span style=display:flex><span>           id: <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>  select_type: SIMPLE
+</span></span><span style=display:flex><span>        table: NULL
+</span></span><span style=display:flex><span>   partitions: NULL
+</span></span><span style=display:flex><span>         type: NULL
+</span></span><span style=display:flex><span>possible_keys: NULL
+</span></span><span style=display:flex><span>          key: NULL
+</span></span><span style=display:flex><span>      key_len: NULL
+</span></span><span style=display:flex><span>          ref: NULL
+</span></span><span style=display:flex><span>         rows: NULL
+</span></span><span style=display:flex><span>     filtered: NULL
+</span></span><span style=display:flex><span>        Extra: Impossible WHERE   <span style=color:#75715e># 不可能字段同时查到两个名字</span>
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span> row in set, <span style=color:#ae81ff>1</span> warning <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div><h2 id=show-profile>Show Profile
+<a class=anchor href=#show-profile>#</a></h2><blockquote><p>Show Profile是什么？</p></blockquote><p><code>Show Profile</code>：MySQL提供可以用来分析当前会话中语句执行的资源消耗情况。可以用于SQL的调优的测量。<strong>默认情况下，参数处于关闭状态，并保存最近15次的运行结果。</strong></p><blockquote><p>分析步骤</p></blockquote><p>1、是否支持，看看当前的MySQL版本是否支持。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># 查看Show Profile功能是否开启</span>
+</span></span><span style=display:flex><span>mysql&gt; SHOW VARIABLES LIKE <span style=color:#e6db74>&#39;profiling&#39;</span>;
+</span></span><span style=display:flex><span>+---------------+-------+
+</span></span><span style=display:flex><span>| Variable_name | Value |
+</span></span><span style=display:flex><span>+---------------+-------+
+</span></span><span style=display:flex><span>| profiling     | OFF   |
+</span></span><span style=display:flex><span>+---------------+-------+
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span> row in set <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div><p>2、开启<code>Show Profile</code>功能，默认是关闭的，使用前需要开启。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># 开启Show Profile功能</span>
+</span></span><span style=display:flex><span>mysql&gt; SET profiling<span style=color:#f92672>=</span>ON;
+</span></span><span style=display:flex><span>Query OK, <span style=color:#ae81ff>0</span> rows affected, <span style=color:#ae81ff>1</span> warning <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div><p>3、运行SQL</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-mysql data-lang=mysql><span style=display:flex><span><span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>FROM</span> <span style=color:#f92672>`</span>emp<span style=color:#f92672>`</span> <span style=color:#66d9ef>GROUP</span> <span style=color:#66d9ef>BY</span> <span style=color:#f92672>`</span>id<span style=color:#f92672>`%</span><span style=color:#ae81ff>10</span> <span style=color:#66d9ef>LIMIT</span> <span style=color:#ae81ff>150000</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>SELECT</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>FROM</span> <span style=color:#f92672>`</span>emp<span style=color:#f92672>`</span> <span style=color:#66d9ef>GROUP</span> <span style=color:#66d9ef>BY</span> <span style=color:#f92672>`</span>id<span style=color:#f92672>`%</span><span style=color:#ae81ff>20</span> <span style=color:#66d9ef>ORDER</span> <span style=color:#66d9ef>BY</span> <span style=color:#ae81ff>5</span>;
+</span></span></code></pre></div><p>4、查看结果，执行<code>SHOW PROFILES;</code></p><p><code>Duration</code>：持续时间。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>mysql&gt; SHOW PROFILES;
+</span></span><span style=display:flex><span>+----------+------------+---------------------------------------------------+
+</span></span><span style=display:flex><span>| Query_ID | Duration   | Query                                             |
+</span></span><span style=display:flex><span>+----------+------------+---------------------------------------------------+
+</span></span><span style=display:flex><span>|        <span style=color:#ae81ff>1</span> | 0.00156100 | SHOW VARIABLES LIKE <span style=color:#e6db74>&#39;profiling&#39;</span>                   |
+</span></span><span style=display:flex><span>|        <span style=color:#ae81ff>2</span> | 0.56296725 | SELECT * FROM <span style=color:#e6db74>`</span>emp<span style=color:#e6db74>`</span> GROUP BY <span style=color:#e6db74>`</span>id<span style=color:#e6db74>`</span>%10 LIMIT <span style=color:#ae81ff>150000</span> |
+</span></span><span style=display:flex><span>|        <span style=color:#ae81ff>3</span> | 0.52105825 | SELECT * FROM <span style=color:#e6db74>`</span>emp<span style=color:#e6db74>`</span> GROUP BY <span style=color:#e6db74>`</span>id<span style=color:#e6db74>`</span>%10 LIMIT <span style=color:#ae81ff>150000</span> |
+</span></span><span style=display:flex><span>|        <span style=color:#ae81ff>4</span> | 0.51279775 | SELECT * FROM <span style=color:#e6db74>`</span>emp<span style=color:#e6db74>`</span> GROUP BY <span style=color:#e6db74>`</span>id<span style=color:#e6db74>`</span>%20 ORDER BY <span style=color:#ae81ff>5</span>   |
+</span></span><span style=display:flex><span>+----------+------------+---------------------------------------------------+
+</span></span><span style=display:flex><span><span style=color:#ae81ff>4</span> rows in set, <span style=color:#ae81ff>1</span> warning <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div><p>5、诊断SQL，<code>SHOW PROFILE cpu,block io FOR QUERY Query_ID;</code></p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># 这里的3是第四步中的Query_ID。</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 可以在SHOW PROFILE中看到一条SQL中完整的生命周期。</span>
+</span></span><span style=display:flex><span>mysql&gt; SHOW PROFILE cpu,block io FOR QUERY 3;
+</span></span><span style=display:flex><span>+----------------------+----------+----------+------------+--------------+---------------+
+</span></span><span style=display:flex><span>| Status               | Duration | CPU_user | CPU_system | Block_ops_in | Block_ops_out |
+</span></span><span style=display:flex><span>+----------------------+----------+----------+------------+--------------+---------------+
+</span></span><span style=display:flex><span>| starting             | 0.000097 | 0.000090 |   0.000002 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| checking permissions | 0.000010 | 0.000009 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| Opening tables       | 0.000039 | 0.000058 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| init                 | 0.000046 | 0.000046 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| System lock          | 0.000011 | 0.000000 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| optimizing           | 0.000005 | 0.000000 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| statistics           | 0.000023 | 0.000037 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| preparing            | 0.000014 | 0.000000 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| Creating tmp table   | 0.000041 | 0.000053 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| Sorting result       | 0.000005 | 0.000000 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| executing            | 0.000003 | 0.000000 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| Sending data         | 0.520620 | 0.516267 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| Creating sort index  | 0.000060 | 0.000051 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| end                  | 0.000006 | 0.000000 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| query end            | 0.000011 | 0.000000 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| removing tmp table   | 0.000006 | 0.000000 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| query end            | 0.000004 | 0.000000 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| closing tables       | 0.000009 | 0.000000 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| freeing items        | 0.000032 | 0.000064 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>| cleaning up          | 0.000019 | 0.000000 |   0.000000 |            <span style=color:#ae81ff>0</span> |             <span style=color:#ae81ff>0</span> |
+</span></span><span style=display:flex><span>+----------------------+----------+----------+------------+--------------+---------------+
+</span></span><span style=display:flex><span><span style=color:#ae81ff>20</span> rows in set, <span style=color:#ae81ff>1</span> warning <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div><p><code>Show Profile</code>查询参数备注：</p><ul><li><code>ALL</code>：显示所有的开销信息。</li><li><code>BLOCK IO</code>：显示块IO相关开销（通用）。</li><li><code>CONTEXT SWITCHES</code>：上下文切换相关开销。</li><li><code>CPU</code>：显示CPU相关开销信息（通用）。</li><li><code>IPC</code>：显示发送和接收相关开销信息。</li><li><code>MEMORY</code>：显示内存相关开销信息。</li><li><code>PAGE FAULTS</code>：显示页面错误相关开销信息。</li><li><code>SOURCE</code>：显示和Source_function。</li><li><code>SWAPS</code>：显示交换次数相关开销的信息。</li></ul><p>6、<code>Show Profile</code>查询列表，日常开发需要注意的结论：</p><ul><li><code>converting HEAP to MyISAM</code>：查询结果太大，内存都不够用了，往磁盘上搬了。</li><li><code>Creating tmp table</code>：创建临时表（拷贝数据到临时表，用完再删除），非常耗费数据库性能。</li><li><code>Copying to tmp table on disk</code>：把内存中的临时表复制到磁盘，危险！！！</li><li><code>locked</code>：死锁。</li></ul><h2 id=打开慢查询日志>打开慢查询日志
+<a class=anchor href=#%e6%89%93%e5%bc%80%e6%85%a2%e6%9f%a5%e8%af%a2%e6%97%a5%e5%bf%97>#</a></h2><blockquote><p>慢查询日志是什么？</p></blockquote><ul><li>MySQL的慢查询日志是MySQL提供的一种日志记录，它用来记录在MySQL中响应时间超过阈值的语句，具体指运行时间超过<code>long_query_time</code>值的SQL，则会被记录到慢查询日志中。</li><li><code>long_query_time</code>的默认值为10，意思是运行10秒以上的语句。</li><li>由慢查询日志来查看哪些SQL超出了我们的最大忍耐时间值，比如一条SQL执行超过5秒钟，我们就算慢SQL，希望能收集超过5秒钟的SQL，结合之前<code>explain</code>进行全面分析。</li></ul><blockquote><p>特别说明</p></blockquote><p><strong>默认情况下，MySQL数据库没有开启慢查询日志</strong>，需要我们手动来设置这个参数。</p><p><strong>当然，如果不是调优需要的话，一般不建议启动该参数</strong>，因为开启慢查询日志会或多或少带来一定的性能影响。慢查询日志支持将日志记录写入文件。</p><blockquote><p>查看慢查询日志是否开以及如何开启</p></blockquote><ul><li><p>查看慢查询日志是否开启：<code>SHOW VARIABLES LIKE '%slow_query_log%';</code>。</p></li><li><p>开启慢查询日志：<code>SET GLOBAL slow_query_log = 1;</code>。<strong>使用该方法开启MySQL的慢查询日志只对当前数据库生效，如果MySQL重启后会失效。</strong></p></li></ul><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># 1、查看慢查询日志是否开启</span>
+</span></span><span style=display:flex><span>mysql&gt; SHOW VARIABLES LIKE <span style=color:#e6db74>&#39;%slow_query_log%&#39;</span>;
+</span></span><span style=display:flex><span>+---------------------+--------------------------------------+
+</span></span><span style=display:flex><span>| Variable_name       | Value                                |
+</span></span><span style=display:flex><span>+---------------------+--------------------------------------+
+</span></span><span style=display:flex><span>| slow_query_log      | OFF                                  |
+</span></span><span style=display:flex><span>| slow_query_log_file | /var/lib/mysql/1dcb5644392c-slow.log |
+</span></span><span style=display:flex><span>+---------------------+--------------------------------------+
+</span></span><span style=display:flex><span><span style=color:#ae81ff>2</span> rows in set <span style=color:#f92672>(</span>0.01 sec<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 2、开启慢查询日志</span>
+</span></span><span style=display:flex><span>mysql&gt; SET GLOBAL slow_query_log <span style=color:#f92672>=</span> 1;
+</span></span><span style=display:flex><span>Query OK, <span style=color:#ae81ff>0</span> rows affected <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div><p>如果要使慢查询日志永久开启，需要修改<code>my.cnf</code>文件，在<code>[mysqld]</code>下增加修改参数。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># my.cnf</span>
+</span></span><span style=display:flex><span><span style=color:#f92672>[</span>mysqld<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 1.这个是开启慢查询。注意ON需要大写</span>
+</span></span><span style=display:flex><span>slow_query_log<span style=color:#f92672>=</span>ON  
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 2.这个是存储慢查询的日志文件。这个文件不存在的话，需要自己创建</span>
+</span></span><span style=display:flex><span>slow_query_log_file<span style=color:#f92672>=</span>/var/lib/mysql/slow.log
+</span></span></code></pre></div><blockquote><p>开启了慢查询日志后，什么样的SQL才会被记录到慢查询日志里面呢？</p></blockquote><p>这个是由参数<code>long_query_time</code>控制的，默认情况下<code>long_query_time</code>的值为10秒。</p><p>MySQL中查看<code>long_query_time</code>的时间：<code>SHOW VARIABLES LIKE 'long_query_time%';</code>。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># 查看long_query_time 默认是10秒</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 只有SQL的执行时间&gt;10才会被记录</span>
+</span></span><span style=display:flex><span>mysql&gt; SHOW VARIABLES LIKE <span style=color:#e6db74>&#39;long_query_time%&#39;</span>;
+</span></span><span style=display:flex><span>+-----------------+-----------+
+</span></span><span style=display:flex><span>| Variable_name   | Value     |
+</span></span><span style=display:flex><span>+-----------------+-----------+
+</span></span><span style=display:flex><span>| long_query_time | 10.000000 |
+</span></span><span style=display:flex><span>+-----------------+-----------+
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span> row in set <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div><p>修改<code>long_query_time</code>的时间，需要在<code>my.cnf</code>修改配置文件</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#f92672>[</span>mysqld<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 这个是设置慢查询的时间，我设置的为1秒</span>
+</span></span><span style=display:flex><span>long_query_time<span style=color:#f92672>=</span><span style=color:#ae81ff>1</span>
+</span></span></code></pre></div><p>查新慢查询日志的总记录条数：<code>SHOW GLOBAL STATUS LIKE '%Slow_queries%';</code>。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>mysql&gt; SHOW GLOBAL STATUS LIKE <span style=color:#e6db74>&#39;%Slow_queries%&#39;</span>;
+</span></span><span style=display:flex><span>+---------------+-------+
+</span></span><span style=display:flex><span>| Variable_name | Value |
+</span></span><span style=display:flex><span>+---------------+-------+
+</span></span><span style=display:flex><span>| Slow_queries  | <span style=color:#ae81ff>3</span>     |
+</span></span><span style=display:flex><span>+---------------+-------+
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span> row in set <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div><h3 id=案例>案例
+<a class=anchor href=#%e6%a1%88%e4%be%8b>#</a></h3><p>模拟慢查询</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-sql data-lang=sql><span style=display:flex><span><span style=color:#66d9ef>SELECT</span> SLEEP(<span style=color:#ae81ff>10</span>)<span style=color:#960050;background-color:#1e0010>，</span>comments <span style=color:#66d9ef>from</span> article <span style=color:#66d9ef>where</span> id<span style=color:#f92672>=</span><span style=color:#ae81ff>1</span>;
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>begin</span>;
+</span></span><span style=display:flex><span><span style=color:#66d9ef>select</span> sleep(<span style=color:#ae81ff>10</span>);
+</span></span><span style=display:flex><span><span style=color:#66d9ef>SHOW</span> VARIABLES <span style=color:#66d9ef>LIKE</span> <span style=color:#e6db74>&#39;%slow_query_log%&#39;</span>;
+</span></span><span style=display:flex><span><span style=color:#66d9ef>commit</span>;
+</span></span></code></pre></div><h3 id=日志分析工具>日志分析工具
+<a class=anchor href=#%e6%97%a5%e5%bf%97%e5%88%86%e6%9e%90%e5%b7%a5%e5%85%b7>#</a></h3><p>日志分析工具<code>mysqldumpslow</code>：在生产环境中，如果要手工分析日志，查找、分析SQL，显然是个体力活，MySQL提供了日志分析工具<code>mysqldumpslow</code>。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># 1、mysqldumpslow --help 来查看mysqldumpslow的帮助信息</span>
+</span></span><span style=display:flex><span>root@1dcb5644392c:/usr/bin# mysqldumpslow --help
+</span></span><span style=display:flex><span>Usage: mysqldumpslow <span style=color:#f92672>[</span> OPTS... <span style=color:#f92672>]</span> <span style=color:#f92672>[</span> LOGS... <span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>Parse and summarize the MySQL slow query log. Options are
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  --verbose    verbose
+</span></span><span style=display:flex><span>  --debug      debug
+</span></span><span style=display:flex><span>  --help       write this text to standard output
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>  -v           verbose
+</span></span><span style=display:flex><span>  -d           debug
+</span></span><span style=display:flex><span>  -s ORDER     what to sort by <span style=color:#f92672>(</span>al, at, ar, c, l, r, t<span style=color:#f92672>)</span>, <span style=color:#e6db74>&#39;at&#39;</span> is default  <span style=color:#75715e># 按照何种方式排序</span>
+</span></span><span style=display:flex><span>                al: average lock time <span style=color:#75715e># 平均锁定时间</span>
+</span></span><span style=display:flex><span>                ar: average rows sent <span style=color:#75715e># 平均返回记录数</span>
+</span></span><span style=display:flex><span>                at: average query time <span style=color:#75715e># 平均查询时间</span>
+</span></span><span style=display:flex><span>                 c: count  <span style=color:#75715e># 访问次数</span>
+</span></span><span style=display:flex><span>                 l: lock time  <span style=color:#75715e># 锁定时间</span>
+</span></span><span style=display:flex><span>                 r: rows sent  <span style=color:#75715e># 返回记录</span>
+</span></span><span style=display:flex><span>                 t: query time  <span style=color:#75715e># 查询时间 </span>
+</span></span><span style=display:flex><span>  -r           reverse the sort order <span style=color:#f92672>(</span>largest last instead of first<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>  -t NUM       just show the top n queries  <span style=color:#75715e># 返回前面多少条记录</span>
+</span></span><span style=display:flex><span>  -a           don<span style=color:#e6db74>&#39;t abstract all numbers to N and strings to &#39;</span>S<span style=color:#e6db74>&#39;
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>  -n NUM       abstract numbers with at least n digits within names
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>  -g PATTERN   grep: only consider stmts that include this string  
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>  -h HOSTNAME  hostname of db server for *-slow.log filename (can be wildcard),
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>               default is &#39;</span>*<span style=color:#e6db74>&#39;, i.e. match all
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>  -i NAME      name of server instance (if using mysql.server startup script)
+</span></span></span><span style=display:flex><span><span style=color:#e6db74>  -l           don&#39;</span>t subtract lock time from total time
+</span></span><span style=display:flex><span>  
+</span></span><span style=display:flex><span><span style=color:#75715e># 2、 案例</span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 2.1、得到返回记录集最多的10个SQL</span>
+</span></span><span style=display:flex><span>mysqldumpslow -s r -t <span style=color:#ae81ff>10</span> /var/lib/mysql/slow.log
+</span></span><span style=display:flex><span> 
+</span></span><span style=display:flex><span><span style=color:#75715e># 2.2、得到访问次数最多的10个SQL</span>
+</span></span><span style=display:flex><span>mysqldumpslow -s c -t <span style=color:#ae81ff>10</span> /var/lib/mysql/slow.log
+</span></span><span style=display:flex><span> 
+</span></span><span style=display:flex><span><span style=color:#75715e># 2.3、得到按照时间排序的前10条里面含有左连接的查询语句</span>
+</span></span><span style=display:flex><span>mysqldumpslow -s t -t <span style=color:#ae81ff>10</span> -g <span style=color:#e6db74>&#34;left join&#34;</span> /var/lib/mysql/slow.log
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 2.4、另外建议使用这些命令时结合|和more使用，否则出现爆屏的情况</span>
+</span></span><span style=display:flex><span>mysqldumpslow -s r -t <span style=color:#ae81ff>10</span> /var/lib/mysql/slow.log | more
+</span></span></code></pre></div><h1 id=排查慢sql>排查慢SQL
+<a class=anchor href=#%e6%8e%92%e6%9f%a5%e6%85%a2sql>#</a></h1><p>分析：</p><p>1、观察，至少跑1天，看看生产的慢SQL情况。</p><p>2、开启慢查询日志，设置阈值，比如超过5秒钟的就是慢SQL，并将它抓取出来。</p><p>3、explain + 慢SQL分析。</p><p>4、show Profile。</p><p>5、运维经理 or DBA，进行MySQL数据库服务器的参数调优。</p><p>总结（大纲）：</p><p>1、慢查询的开启，设置阈值并捕获。</p><p>2、explain + 慢SQL分析。</p><p>3、show Profile查询SQL在MySQL数据库中的执行细节和生命周期情况。</p><p>4、MySQL数据库服务器的参数调优。</p><h1 id=批量插入数据脚本>批量插入数据脚本
+<a class=anchor href=#%e6%89%b9%e9%87%8f%e6%8f%92%e5%85%a5%e6%95%b0%e6%8d%ae%e8%84%9a%e6%9c%ac>#</a></h1><h2 id=环境准备>环境准备
+<a class=anchor href=#%e7%8e%af%e5%a2%83%e5%87%86%e5%a4%87>#</a></h2><blockquote><p>1、建表SQL。</p></blockquote><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-mysql data-lang=mysql><span style=display:flex><span><span style=color:#75715e>/* 1.dept表 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>CREATE</span> <span style=color:#66d9ef>TABLE</span> <span style=color:#f92672>`</span>dept<span style=color:#f92672>`</span> (
+</span></span><span style=display:flex><span>  <span style=color:#f92672>`</span>id<span style=color:#f92672>`</span> <span style=color:#66d9ef>int</span>(<span style=color:#ae81ff>10</span>) <span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>NOT</span> <span style=color:#66d9ef>NULL</span> <span style=color:#66d9ef>AUTO_INCREMENT</span> COMMENT <span style=color:#e6db74>&#39;主键&#39;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#f92672>`</span>deptno<span style=color:#f92672>`</span> <span style=color:#66d9ef>int</span>(<span style=color:#ae81ff>10</span>) <span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>NOT</span> <span style=color:#66d9ef>NULL</span> <span style=color:#66d9ef>DEFAULT</span> <span style=color:#e6db74>&#39;0&#39;</span> COMMENT <span style=color:#e6db74>&#39;部门id&#39;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#f92672>`</span>dname<span style=color:#f92672>`</span> <span style=color:#66d9ef>varchar</span>(<span style=color:#ae81ff>20</span>) <span style=color:#66d9ef>NOT</span> <span style=color:#66d9ef>NULL</span> <span style=color:#66d9ef>DEFAULT</span> <span style=color:#e6db74>&#39;&#39;</span> COMMENT <span style=color:#e6db74>&#39;部门名字&#39;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#f92672>`</span>loc<span style=color:#f92672>`</span> <span style=color:#66d9ef>varchar</span>(<span style=color:#ae81ff>13</span>) <span style=color:#66d9ef>NOT</span> <span style=color:#66d9ef>NULL</span> <span style=color:#66d9ef>DEFAULT</span> <span style=color:#e6db74>&#39;&#39;</span> COMMENT <span style=color:#e6db74>&#39;部门地址&#39;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>PRIMARY</span> <span style=color:#66d9ef>KEY</span> (<span style=color:#f92672>`</span>id<span style=color:#f92672>`</span>)
+</span></span><span style=display:flex><span>) <span style=color:#66d9ef>ENGINE</span><span style=color:#f92672>=</span>InnoDB <span style=color:#66d9ef>DEFAULT</span> <span style=color:#66d9ef>CHARSET</span><span style=color:#f92672>=</span>utf8 COMMENT<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;部门表&#39;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>/* 2.emp表 */</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>CREATE</span> <span style=color:#66d9ef>TABLE</span> <span style=color:#f92672>`</span>emp<span style=color:#f92672>`</span> (
+</span></span><span style=display:flex><span>  <span style=color:#f92672>`</span>id<span style=color:#f92672>`</span> <span style=color:#66d9ef>int</span>(<span style=color:#ae81ff>10</span>) <span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>NOT</span> <span style=color:#66d9ef>NULL</span> <span style=color:#66d9ef>AUTO_INCREMENT</span> COMMENT <span style=color:#e6db74>&#39;主键&#39;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#f92672>`</span>empno<span style=color:#f92672>`</span> <span style=color:#66d9ef>int</span>(<span style=color:#ae81ff>10</span>) <span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>NOT</span> <span style=color:#66d9ef>NULL</span> <span style=color:#66d9ef>DEFAULT</span> <span style=color:#e6db74>&#39;0&#39;</span> COMMENT <span style=color:#e6db74>&#39;员工编号&#39;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#f92672>`</span>ename<span style=color:#f92672>`</span> <span style=color:#66d9ef>varchar</span>(<span style=color:#ae81ff>20</span>) <span style=color:#66d9ef>NOT</span> <span style=color:#66d9ef>NULL</span> <span style=color:#66d9ef>DEFAULT</span> <span style=color:#e6db74>&#39;&#39;</span> COMMENT <span style=color:#e6db74>&#39;员工名字&#39;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#f92672>`</span>job<span style=color:#f92672>`</span> <span style=color:#66d9ef>varchar</span>(<span style=color:#ae81ff>9</span>) <span style=color:#66d9ef>NOT</span> <span style=color:#66d9ef>NULL</span> <span style=color:#66d9ef>DEFAULT</span> <span style=color:#e6db74>&#39;&#39;</span> COMMENT <span style=color:#e6db74>&#39;职位&#39;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#f92672>`</span>mgr<span style=color:#f92672>`</span> <span style=color:#66d9ef>int</span>(<span style=color:#ae81ff>10</span>) <span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>NOT</span> <span style=color:#66d9ef>NULL</span> <span style=color:#66d9ef>DEFAULT</span> <span style=color:#e6db74>&#39;0&#39;</span> COMMENT <span style=color:#e6db74>&#39;上级编号&#39;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#f92672>`</span>hiredata<span style=color:#f92672>`</span> <span style=color:#66d9ef>date</span> <span style=color:#66d9ef>NOT</span> <span style=color:#66d9ef>NULL</span> COMMENT <span style=color:#e6db74>&#39;入职时间&#39;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#f92672>`</span>sal<span style=color:#f92672>`</span> <span style=color:#66d9ef>decimal</span>(<span style=color:#ae81ff>7</span>,<span style=color:#ae81ff>2</span>) <span style=color:#66d9ef>NOT</span> <span style=color:#66d9ef>NULL</span> COMMENT <span style=color:#e6db74>&#39;薪水&#39;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#f92672>`</span>comm<span style=color:#f92672>`</span> <span style=color:#66d9ef>decimal</span>(<span style=color:#ae81ff>7</span>,<span style=color:#ae81ff>2</span>) <span style=color:#66d9ef>NOT</span> <span style=color:#66d9ef>NULL</span> COMMENT <span style=color:#e6db74>&#39;分红&#39;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#f92672>`</span>deptno<span style=color:#f92672>`</span> <span style=color:#66d9ef>int</span>(<span style=color:#ae81ff>10</span>) <span style=color:#66d9ef>unsigned</span> <span style=color:#66d9ef>NOT</span> <span style=color:#66d9ef>NULL</span> <span style=color:#66d9ef>DEFAULT</span> <span style=color:#e6db74>&#39;0&#39;</span> COMMENT <span style=color:#e6db74>&#39;部门id&#39;</span>,
+</span></span><span style=display:flex><span>  <span style=color:#66d9ef>PRIMARY</span> <span style=color:#66d9ef>KEY</span> (<span style=color:#f92672>`</span>id<span style=color:#f92672>`</span>)
+</span></span><span style=display:flex><span>) <span style=color:#66d9ef>ENGINE</span><span style=color:#f92672>=</span>InnoDB <span style=color:#66d9ef>DEFAULT</span> <span style=color:#66d9ef>CHARSET</span><span style=color:#f92672>=</span>utf8 COMMENT<span style=color:#f92672>=</span><span style=color:#e6db74>&#39;员工表&#39;</span>
+</span></span></code></pre></div><blockquote><p>2、由于开启过慢查询日志，开启了<code>bin-log</code>，我们就必须为<code>function</code>指定一个参数，否则使用函数会报错。</p></blockquote><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#75715e># 在mysql中设置 </span>
+</span></span><span style=display:flex><span><span style=color:#75715e># log_bin_trust_function_creators 默认是关闭的 需要手动开启</span>
+</span></span><span style=display:flex><span>mysql&gt; SHOW VARIABLES LIKE <span style=color:#e6db74>&#39;log_bin_trust_function_creators&#39;</span>;
+</span></span><span style=display:flex><span>+---------------------------------+-------+
+</span></span><span style=display:flex><span>| Variable_name                   | Value |
+</span></span><span style=display:flex><span>+---------------------------------+-------+
+</span></span><span style=display:flex><span>| log_bin_trust_function_creators | OFF   |
+</span></span><span style=display:flex><span>+---------------------------------+-------+
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span> row in set <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>mysql&gt; SET GLOBAL log_bin_trust_function_creators<span style=color:#f92672>=</span>1;
+</span></span><span style=display:flex><span>Query OK, <span style=color:#ae81ff>0</span> rows affected <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div><p>上述修改方式MySQL重启后会失效，在<code>my.cnf</code>配置文件下修改永久有效。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span><span style=color:#f92672>[</span>mysqld<span style=color:#f92672>]</span>
+</span></span><span style=display:flex><span>log_bin_trust_function_creators<span style=color:#f92672>=</span>ON
+</span></span></code></pre></div><h2 id=创建函数>创建函数
+<a class=anchor href=#%e5%88%9b%e5%bb%ba%e5%87%bd%e6%95%b0>#</a></h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-mysql data-lang=mysql><span style=display:flex><span><span style=color:#75715e># 1、函数：随机产生字符串
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>DELIMITER <span style=color:#960050;background-color:#1e0010>$$</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>CREATE</span> FUNCTION <span style=color:#a6e22e>rand_string</span>(n <span style=color:#66d9ef>INT</span>) RETURNS <span style=color:#66d9ef>VARCHAR</span>(<span style=color:#ae81ff>255</span>)
+</span></span><span style=display:flex><span>BEGIN
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>DECLARE</span> chars_str <span style=color:#66d9ef>VARCHAR</span>(<span style=color:#ae81ff>100</span>) <span style=color:#66d9ef>DEFAULT</span> <span style=color:#e6db74>&#39;abcdefghijklmnopqrstuvwsyzABCDEFGHIJKLMNOPQRSTUVWXYZ&#39;</span>;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>DECLARE</span> return_str <span style=color:#66d9ef>VARCHAR</span>(<span style=color:#ae81ff>255</span>) <span style=color:#66d9ef>DEFAULT</span> <span style=color:#e6db74>&#39;&#39;</span>;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>DECLARE</span> i <span style=color:#66d9ef>INT</span> <span style=color:#66d9ef>DEFAULT</span> <span style=color:#ae81ff>0</span>;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>WHILE</span> i <span style=color:#f92672>&lt;</span> n DO
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>SET</span> return_str <span style=color:#f92672>=</span> <span style=color:#a6e22e>CONCAT</span>(return_str,<span style=color:#a6e22e>SUBSTRING</span>(chars_str,<span style=color:#a6e22e>FLOOR</span>(<span style=color:#ae81ff>1</span><span style=color:#f92672>+</span><span style=color:#a6e22e>RAND</span>()<span style=color:#f92672>*</span><span style=color:#ae81ff>52</span>),<span style=color:#ae81ff>1</span>));
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>SET</span> i <span style=color:#f92672>=</span> i <span style=color:#f92672>+</span> <span style=color:#ae81ff>1</span>;
+</span></span><span style=display:flex><span>    END <span style=color:#66d9ef>WHILE</span>;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>RETURN</span> return_str;
+</span></span><span style=display:flex><span>END <span style=color:#960050;background-color:#1e0010>$$</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 2、函数：随机产生部门编号
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>DELIMITER <span style=color:#960050;background-color:#1e0010>$$</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>CREATE</span> FUNCTION <span style=color:#a6e22e>rand_num</span>() RETURNS <span style=color:#66d9ef>INT</span>(<span style=color:#ae81ff>5</span>)
+</span></span><span style=display:flex><span>BEGIN
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>DECLARE</span> i <span style=color:#66d9ef>INT</span> <span style=color:#66d9ef>DEFAULT</span> <span style=color:#ae81ff>0</span>;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>SET</span> i <span style=color:#f92672>=</span> <span style=color:#a6e22e>FLOOR</span>(<span style=color:#ae81ff>100</span> <span style=color:#f92672>+</span> <span style=color:#a6e22e>RAND</span>() <span style=color:#f92672>*</span> <span style=color:#ae81ff>10</span>);
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>RETURN</span> i;
+</span></span><span style=display:flex><span>END <span style=color:#960050;background-color:#1e0010>$$</span>
+</span></span></code></pre></div><h2 id=创建存储过程>创建存储过程
+<a class=anchor href=#%e5%88%9b%e5%bb%ba%e5%ad%98%e5%82%a8%e8%bf%87%e7%a8%8b>#</a></h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-mysql data-lang=mysql><span style=display:flex><span><span style=color:#75715e># 1、函数：向dept表批量插入
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>DELIMITER <span style=color:#960050;background-color:#1e0010>$$</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>CREATE</span> <span style=color:#66d9ef>PROCEDURE</span> <span style=color:#a6e22e>insert_dept</span>(<span style=color:#66d9ef>IN</span> START <span style=color:#66d9ef>INT</span>(<span style=color:#ae81ff>10</span>),<span style=color:#66d9ef>IN</span> max_num <span style=color:#66d9ef>INT</span>(<span style=color:#ae81ff>10</span>))
+</span></span><span style=display:flex><span>BEGIN
+</span></span><span style=display:flex><span><span style=color:#66d9ef>DECLARE</span> i <span style=color:#66d9ef>INT</span> <span style=color:#66d9ef>DEFAULT</span> <span style=color:#ae81ff>0</span>;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>SET</span> autocommit <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>REPEAT</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>SET</span> i <span style=color:#f92672>=</span> i <span style=color:#f92672>+</span> <span style=color:#ae81ff>1</span>;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>INSERT</span> <span style=color:#66d9ef>INTO</span> <span style=color:#a6e22e>dept</span>(deptno,dname,loc) <span style=color:#66d9ef>VALUES</span>((START <span style=color:#f92672>+</span> i),<span style=color:#a6e22e>rand_string</span>(<span style=color:#ae81ff>10</span>),<span style=color:#a6e22e>rand_string</span>(<span style=color:#ae81ff>8</span>));
+</span></span><span style=display:flex><span>    UNTIL i <span style=color:#f92672>=</span> max_num
+</span></span><span style=display:flex><span>    END <span style=color:#66d9ef>REPEAT</span>;
+</span></span><span style=display:flex><span>    COMMIT;
+</span></span><span style=display:flex><span>END <span style=color:#960050;background-color:#1e0010>$$</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 2、函数：向emp表批量插入
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>DELIMITER <span style=color:#960050;background-color:#1e0010>$$</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>CREATE</span> <span style=color:#66d9ef>PROCEDURE</span> <span style=color:#a6e22e>insert_emp</span>(<span style=color:#66d9ef>IN</span> START <span style=color:#66d9ef>INT</span>(<span style=color:#ae81ff>10</span>),<span style=color:#66d9ef>IN</span> max_num <span style=color:#66d9ef>INT</span>(<span style=color:#ae81ff>10</span>))
+</span></span><span style=display:flex><span>BEGIN
+</span></span><span style=display:flex><span><span style=color:#66d9ef>DECLARE</span> i <span style=color:#66d9ef>INT</span> <span style=color:#66d9ef>DEFAULT</span> <span style=color:#ae81ff>0</span>;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>SET</span> autocommit <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>REPEAT</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>SET</span> i <span style=color:#f92672>=</span> i <span style=color:#f92672>+</span> <span style=color:#ae81ff>1</span>;
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>INSERT</span> <span style=color:#66d9ef>INTO</span> <span style=color:#a6e22e>emp</span>(empno,ename,job,mgr,hiredata,sal,comm,deptno) <span style=color:#66d9ef>VALUES</span>((START <span style=color:#f92672>+</span> i),<span style=color:#a6e22e>rand_string</span>(<span style=color:#ae81ff>6</span>),<span style=color:#e6db74>&#39;SALESMAN&#39;</span>,<span style=color:#ae81ff>0001</span>,<span style=color:#a6e22e>CURDATE</span>(),<span style=color:#ae81ff>2000</span>,<span style=color:#ae81ff>400</span>,<span style=color:#a6e22e>rand_num</span>());
+</span></span><span style=display:flex><span>    UNTIL i <span style=color:#f92672>=</span> max_num
+</span></span><span style=display:flex><span>    END <span style=color:#66d9ef>REPEAT</span>;
+</span></span><span style=display:flex><span>    COMMIT;
+</span></span><span style=display:flex><span>END <span style=color:#960050;background-color:#1e0010>$$</span>
+</span></span></code></pre></div><h2 id=调用存储过程>调用存储过程
+<a class=anchor href=#%e8%b0%83%e7%94%a8%e5%ad%98%e5%82%a8%e8%bf%87%e7%a8%8b>#</a></h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-mysql data-lang=mysql><span style=display:flex><span><span style=color:#75715e># 1、调用存储过程向dept表插入10个部门。
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>DELIMITER ;
+</span></span><span style=display:flex><span><span style=color:#66d9ef>CALL</span> <span style=color:#a6e22e>insert_dept</span>(<span style=color:#ae81ff>100</span>,<span style=color:#ae81ff>10</span>);
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e># 2、调用存储过程向emp表插入50万条数据。
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>DELIMITER ;
+</span></span><span style=display:flex><span><span style=color:#66d9ef>CALL</span> <span style=color:#a6e22e>insert_emp</span>(<span style=color:#ae81ff>100001</span>,<span style=color:#ae81ff>500000</span>);
+</span></span></code></pre></div><h2 id=结果>结果
+<a class=anchor href=#%e7%bb%93%e6%9e%9c>#</a></h2><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-shell data-lang=shell><span style=display:flex><span>mysql&gt; <span style=color:#66d9ef>select</span> count<span style=color:#f92672>(</span>*<span style=color:#f92672>)</span> from dept;
+</span></span><span style=display:flex><span>+----------+
+</span></span><span style=display:flex><span>| count<span style=color:#f92672>(</span>*<span style=color:#f92672>)</span> |
+</span></span><span style=display:flex><span>+----------+
+</span></span><span style=display:flex><span>|       <span style=color:#ae81ff>10</span> |
+</span></span><span style=display:flex><span>+----------+
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span> row in set <span style=color:#f92672>(</span>0.00 sec<span style=color:#f92672>)</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>mysql&gt;
+</span></span><span style=display:flex><span>mysql&gt; <span style=color:#66d9ef>select</span> count<span style=color:#f92672>(</span>*<span style=color:#f92672>)</span> from emp;
+</span></span><span style=display:flex><span>+----------+
+</span></span><span style=display:flex><span>| count<span style=color:#f92672>(</span>*<span style=color:#f92672>)</span> |
+</span></span><span style=display:flex><span>+----------+
+</span></span><span style=display:flex><span>|   <span style=color:#ae81ff>500000</span> |
+</span></span><span style=display:flex><span>+----------+
+</span></span><span style=display:flex><span><span style=color:#ae81ff>1</span> row in set <span style=color:#f92672>(</span>0.07 sec<span style=color:#f92672>)</span>
+</span></span></code></pre></div></article><footer class=book-footer><div class="flex flex-wrap justify-between"></div><script>(function(){function e(e){const t=window.getSelection(),n=document.createRange();n.selectNodeContents(e),t.removeAllRanges(),t.addRange(n)}document.querySelectorAll("pre code").forEach(t=>{t.addEventListener("click",function(){e(t.parentElement),navigator.clipboard&&navigator.clipboard.writeText(t.parentElement.textContent)})})})()</script></footer><div class=book-comments><script src=https://giscus.app/client.js data-repo=zput/utterances-comments data-repo-id=R_kgDOHhATGQ data-category=Announcements data-category-id=DIC_kwDOHhATGc4CPxca data-mapping=pathname data-reactions-enabled=1 data-emit-metadata=1 data-input-position=top data-theme=light data-lang=zh-CN data-loading=lazy crossorigin=anonymous async></script></div><label for=menu-control class="hidden book-menu-overlay"></label></div><aside class=book-toc><div class=book-toc-content><nav id=TableOfContents><ul><li><a href=#sql>SQL</a><ul><li><a href=#sql执行顺序>SQL执行顺序</a></li><li><a href=#七种join>七种JOIN</a></li><li><a href=#查询优化>查询优化</a><ul><li><a href=#小表驱动大表>小表驱动大表</a></li><li><a href=#order-by优化>ORDER BY优化</a></li><li><a href=#gorup-by优化>GORUP BY优化</a></li><li><a href=#总结>总结</a></li></ul></li></ul></li><li><a href=#sql分析>SQL分析</a><ul><li><a href=#sql性能下降的原因>SQL性能下降的原因</a></li><li><a href=#explain>EXPLAIN</a><ul><li><a href=#explain输出字段>EXPLAIN输出字段</a></li></ul></li><li><a href=#show-profile>Show Profile</a></li><li><a href=#打开慢查询日志>打开慢查询日志</a><ul><li><a href=#案例>案例</a></li><li><a href=#日志分析工具>日志分析工具</a></li></ul></li></ul></li><li><a href=#排查慢sql>排查慢SQL</a></li><li><a href=#批量插入数据脚本>批量插入数据脚本</a><ul><li><a href=#环境准备>环境准备</a></li><li><a href=#创建函数>创建函数</a></li><li><a href=#创建存储过程>创建存储过程</a></li><li><a href=#调用存储过程>调用存储过程</a></li><li><a href=#结果>结果</a></li></ul></li></ul></nav></div></aside></main></body></html>
