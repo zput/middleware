@@ -231,7 +231,7 @@ func handleErr(){ // 可以使用CPU提供的PAUSE指令来实现「忙等待」
 内存屏障:通常是为了CPU为了提高流水线性能，而对指令进行重排序而来，
 原子性:是指的执行某个操作的过程的不可分割</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-asm data-lang=asm><span style=display:flex><span><span style=color:#75715e># atomic/asm_amd64.s TEXT runtime∕internal∕atomic·Xadd(SB)
 </span></span></span><span style=display:flex><span><span style=color:#75715e></span>    <span style=color:#a6e22e>LOCK</span> <span style=color:#75715e># LOCK指令配合CPU的MESI协议，实现可见性和内存屏障
-</span></span></span><span style=display:flex><span><span style=color:#75715e></span>    <span style=color:#66d9ef>XADDL</span>   <span style=color:#66d9ef>AX</span>, <span style=color:#ae81ff>0</span>(<span style=color:#66d9ef>BX</span>) <span style=color:#75715e># 通过XADDL则用来保证原子性
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>    <span style=color:#a6e22e>XADDL</span>   <span style=color:#66d9ef>AX</span>, <span style=color:#ae81ff>0</span>(<span style=color:#66d9ef>BX</span>) <span style=color:#75715e># 通过XADDL则用来保证原子性
 </span></span></span></code></pre></div><ul><li><a href=https://java366.com/blog/detail/409a3d2f952c92cbb84f4a1438b1dc0c>https://java366.com/blog/detail/409a3d2f952c92cbb84f4a1438b1dc0c</a></li></ul><h1 id=mysql锁>mysql锁
 <a class=anchor href=#mysql%e9%94%81>#</a></h1><p>一个是悲观锁（行锁/grap锁/next-key锁）
 一个是乐观锁（mvcc使用undo log来实现的一致性非锁定读, 利用事务版本的概念来实现的锁）</p><h2 id=悲观锁>悲观锁
