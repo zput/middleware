@@ -5,7 +5,7 @@ count(聚簇索引) # 有辅助索引时，InnoDB循环遍历的对象就不是�
 如果有多个辅助索引, 优化器会使用key_len,挑选最小的辅助索引进行扫描。
 这是因为相同数量的辅助索引记录可以比聚簇索引记录占用更少的存储空间，所以辅助索引树比聚簇(主键)索引树小，这样遍历辅助索引的 I/O 成本比遍历聚簇(主键)索引的 I/O 成本小，因此「优化器」优先选择的是最小的辅助索引。
 count(非聚簇索引) # 使用辅助索引来进行统计"><meta name=theme-color media="(prefers-color-scheme: light)" content="#ffffff"><meta name=theme-color media="(prefers-color-scheme: dark)" content="#343a40"><meta name=color-scheme content="light dark"><meta property="og:url" content="https://zput.github.io/middleware/docs/mysql/advanced/function/"><meta property="og:site_name" content="常用中间件分析"><meta property="og:title" content="聚合函数"><meta property="og:description" content="count函数 # count()是一个函数，他的形参可以是一个字段或表达式; 函数逻辑是统计符合查询条件的记录中，如果使当前字段/表达式不为null的个数。比如select count(1) from tmp_table; 那么就是统计tmp_table表有多少行，因它的每个记录都不会使得表达式1为null。返回是统计结果
-count(*)==count(1) &amp;gt; count(聚簇索引) &amp;gt;= count(非聚簇索引) &amp;gt; count(非索引字段) count(*)等同于count(1) # InnoDB handles SELECT COUNT(*) and SELECT COUNT(1) operations in the same way. There is no performance difference.
+count(*)==count(1) > count(聚簇索引) >= count(非聚簇索引) > count(非索引字段) count(*)等同于count(1) # InnoDB handles SELECT COUNT(*) and SELECT COUNT(1) operations in the same way. There is no performance difference.
 不需要读取记录中的字段值然后再去判断, 所以server层不需要innodb返回字段
 count(聚簇索引) # 有辅助索引时，InnoDB循环遍历的对象就不是聚簇索引，而是辅助索引。
 如果有多个辅助索引, 优化器会使用key_len,挑选最小的辅助索引进行扫描。
