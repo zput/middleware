@@ -1,12 +1,107 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Mysql on 常用中间件分析</title><link>https://zput.github.io/middleware/tags/mysql/</link><description>Recent content in Mysql on 常用中间件分析</description><generator>Hugo</generator><language>zh</language><lastBuildDate>Fri, 24 Jan 2020 10:33:00 +0000</lastBuildDate><atom:link href="https://zput.github.io/middleware/tags/mysql/index.xml" rel="self" type="application/rss+xml"/><item><title>写好sql</title><link>https://zput.github.io/middleware/docs/mysql/business_facing/sql/</link><pubDate>Fri, 24 Jan 2020 10:33:00 +0000</pubDate><guid>https://zput.github.io/middleware/docs/mysql/business_facing/sql/</guid><description>SQL # SQL执行顺序 # select # 5 ----&amp;gt; ... from # 1 ... where # 2 .... group by # 3 ... having # 4 ----&amp;gt; ... order by # 6 ... limit # 7 [offset] 七种JOIN # /* 1 */ SELECT &amp;lt;select_list&amp;gt; FROM TableA A LEFT JOIN TableB B ON A.Key = B.Key; /* 2 */ SELECT &amp;lt;select_list&amp;gt; FROM TableA A RIGHT JOIN TableB B ON A.Key = B.</description></item><item><title>初始化</title><link>https://zput.github.io/middleware/docs/mysql/init/install/</link><pubDate>Fri, 24 Jan 2020 10:33:00 +0000</pubDate><guid>https://zput.github.io/middleware/docs/mysql/init/install/</guid><description>MySQL环境 # 环境安装 # # 查看Linux服务器上是否安装过MySQL rpm -qa | grep -i mysql # 查询出所有mysql依赖包 # 1、拉取镜像 docker pull mysql:5.7 # 2、创建实例并启动 docker run -p 3306:3306 --name mysql \ -v /root/mysql/log:/var/log/mysql \ -v /root/mysql/data:/var/lib/mysql \ -v /root/mysql/conf:/etc/mysql \ -e MYSQL_ROOT_PASSWORD=qwer \ -d mysql:5.7 # conf # 配置文件!!! # 4、重启mysql容器 docker restart mysql # 5、进入到mysql容器 docker exec -it mysql /bin/bash # 6、查看修改的配置文件 cat /etc/mysql/my.conf 安装位置 # Docker容器就是一个小型的Linux环境，进入到MySQL容器中。
-docker exec -it mysql /bin/bash Linux环境下MySQL的安装目录。</description></item><item><title>索引</title><link>https://zput.github.io/middleware/docs/mysql/business_facing/innodb_index/</link><pubDate>Fri, 24 Jan 2020 10:33:00 +0000</pubDate><guid>https://zput.github.io/middleware/docs/mysql/business_facing/innodb_index/</guid><description>索引 # 索引简介 # 索引是什么？
-A database index is a data structure that improves the speed of operations in a table MySQL官方对索引的定义为：索引（INDEX）是帮助MySQL对表高效操作的数据结构。
-从而可以获得索引的本质：索引是排好序的快速查找数据结构。
-索引的目的在于提高查询效率，可以类比字典的目录。如果要查mysql这个这个单词，我们肯定要先定位到m字母，然后从上往下找y字母，再找剩下的sql。如果没有索引，那么可能需要a---z，这样全字典扫描，如果我想找Java开头的单词呢？如果我想找Oracle开头的单词呢？？？
-重点：索引会影响到MySQL查找(WHERE的查询条件)和排序(ORDER BY)两大功能！
-除了数据本身之外，数据库还维护着一个满足特定查找算法的数据结构，这些数据结构以某种方式指向数据，这样就可以在这些数据结构的基础上实现高级查找算法，这种数据结构就是索引。
-一般来说，索引本身也很大，不可能全部存储在内存中，因此索引往往以索引文件的形式存储在磁盘上。
-# Linux下查看磁盘空间命令 df -h [root@Ringo ~]# df -h Filesystem Size Used Avail Use% Mounted on /dev/vda1 40G 16G 23G 41% / devtmpfs 911M 0 911M 0% /dev tmpfs 920M 0 920M 0% /dev/shm tmpfs 920M 480K 920M 1% /run tmpfs 920M 0 920M 0% /sys/fs/cgroup overlay 40G 16G 23G 41% 我们平时所说的索引，如果没有特别指明，都是指B树（多路搜索树，并不一定是二叉的）结构组织的索引。其中聚集索引，次要索引，覆盖索引，复合索引，前缀索引，唯一索引默认都是使用B+树索引，统称索引。当然，除了B+树这种数据结构的索引之外，还有哈希索引（Hash Index）等。</description></item><item><title>锁</title><link>https://zput.github.io/middleware/docs/mysql/business_facing/innodb_lock/</link><pubDate>Fri, 24 Jan 2020 10:33:00 +0000</pubDate><guid>https://zput.github.io/middleware/docs/mysql/business_facing/innodb_lock/</guid><description>表锁(偏读) # 表锁特点：
-表锁偏向MyISAM存储引擎，开销小，加锁快，无死锁，锁定粒度大，发生锁冲突的概率最高，并发度最低。 环境准备 # # 1、创建表 CREATE TABLE `mylock`( `id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT, `name` VARCHAR(20) )ENGINE=MYISAM DEFAULT CHARSET=utf8 COMMENT=&amp;#39;测试表锁&amp;#39;; # 2、插入数据 INSERT INTO `mylock`(`name`) VALUES(&amp;#39;ZhangSan&amp;#39;); INSERT INTO `mylock`(`name`) VALUES(&amp;#39;LiSi&amp;#39;); INSERT INTO `mylock`(`name`) VALUES(&amp;#39;WangWu&amp;#39;); INSERT INTO `mylock`(`name`) VALUES(&amp;#39;ZhaoLiu&amp;#39;); 锁表的命令 # 1、查看数据库表锁的命令。
-# 查看数据库表锁的命令 SHOW OPEN TABLES; 2、给mylock表上读锁，给book表上写锁。
-# 给mylock表上读锁，给book表上写锁 LOCK TABLE `mylock` READ, `book` WRITE; # 查看当前表的状态 mysql&amp;gt; SHOW OPEN TABLES; +--------------------+------------------------------------------------------+--------+-------------+ | Database | Table | In_use | Name_locked | +--------------------+------------------------------------------------------+--------+-------------+ | sql_analysis | book | 1 | 0 | | sql_analysis | mylock | 1 | 0 | +--------------------+------------------------------------------------------+--------+-------------+ 3、释放表锁。</description></item></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Mysql on 常用中间件分析</title><link>https://zput.github.io/middleware/tags/mysql/</link><description>Recent content in Mysql on 常用中间件分析</description><generator>Hugo</generator><language>zh</language><lastBuildDate>Fri, 24 Jan 2020 10:33:00 +0000</lastBuildDate><atom:link href="https://zput.github.io/middleware/tags/mysql/index.xml" rel="self" type="application/rss+xml"/><item><title>写好sql</title><link>https://zput.github.io/middleware/docs/mysql/business_facing/sql/</link><pubDate>Fri, 24 Jan 2020 10:33:00 +0000</pubDate><guid>https://zput.github.io/middleware/docs/mysql/business_facing/sql/</guid><description>&lt;h1 id="sql">
+ SQL
+ &lt;a class="anchor" href="#sql">#&lt;/a>
+&lt;/h1>
+&lt;h2 id="sql执行顺序">
+ SQL执行顺序
+ &lt;a class="anchor" href="#sql%e6%89%a7%e8%a1%8c%e9%a1%ba%e5%ba%8f">#&lt;/a>
+&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">select&lt;/span> &lt;span style="color:#75715e"># 5 ----&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>	... 
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>from &lt;span style="color:#75715e"># 1&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>	... 
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>where &lt;span style="color:#75715e"># 2&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>	.... 
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>group by &lt;span style="color:#75715e"># 3&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>	... 
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>having &lt;span style="color:#75715e"># 4 ----&amp;gt;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>	... 
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>order by &lt;span style="color:#75715e"># 6&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>	... 
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>limit &lt;span style="color:#75715e"># 7&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>	&lt;span style="color:#f92672">[&lt;/span>offset&lt;span style="color:#f92672">]&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pr</description></item><item><title>初始化</title><link>https://zput.github.io/middleware/docs/mysql/init/install/</link><pubDate>Fri, 24 Jan 2020 10:33:00 +0000</pubDate><guid>https://zput.github.io/middleware/docs/mysql/init/install/</guid><description>&lt;h1 id="mysql环境">
+ MySQL环境
+ &lt;a class="anchor" href="#mysql%e7%8e%af%e5%a2%83">#&lt;/a>
+&lt;/h1>
+&lt;h2 id="环境安装">
+ 环境安装
+ &lt;a class="anchor" href="#%e7%8e%af%e5%a2%83%e5%ae%89%e8%a3%85">#&lt;/a>
+&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 查看Linux服务器上是否安装过MySQL&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>rpm -qa | grep -i mysql &lt;span style="color:#75715e"># 查询出所有mysql依赖包&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 1、拉取镜像&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>docker pull mysql:5.7
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 2、创建实例并启动&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>docker run -p 3306:3306 --name mysql &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span>-v /root/mysql/log:/var/log/mysql &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span>-v /root/mysql/data:/var/lib/mysql &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span>-v /root/mysql/conf:/etc/mysql &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span>-e MYSQL_ROOT_PASSWORD&lt;span style="color:#f92672">=&lt;/span>qwer &lt;span style="color:#ae81ff">\
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#ae81ff">&lt;/span>-d mysql:5.7
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># conf&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 配置文件!!!&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 4、重启mysql容器&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>docker restart mysql
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 5、进入到mysql容器&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>docker exec -it mysql /bin/bash
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 6、查看修改的配置文件&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cat /etc/mysql/my.conf
+&lt;/span>&lt;/span>&lt;/code>&lt;/pr</description></item><item><title>索引</title><link>https://zput.github.io/middleware/docs/mysql/business_facing/innodb_index/</link><pubDate>Fri, 24 Jan 2020 10:33:00 +0000</pubDate><guid>https://zput.github.io/middleware/docs/mysql/business_facing/innodb_index/</guid><description>&lt;h1 id="索引">
+ 索引
+ &lt;a class="anchor" href="#%e7%b4%a2%e5%bc%95">#&lt;/a>
+&lt;/h1>
+&lt;h2 id="索引简介">
+ 索引简介
+ &lt;a class="anchor" href="#%e7%b4%a2%e5%bc%95%e7%ae%80%e4%bb%8b">#&lt;/a>
+&lt;/h2>
+&lt;blockquote>
+&lt;p>索引是什么？&lt;/p>
+&lt;/blockquote>
+&lt;p>
+ &lt;a href="https://www.tutorialspoint.com/mysql/mysql-indexes.htm">A database index is a data structure that improves the speed of operations in a table&lt;/a>
+MySQL官方对索引的定义为：&lt;strong>索引（INDEX）是帮助MySQL对表高效操作的数据结构。&lt;/strong>&lt;/p>
+&lt;p>从而可以获得索引的本质：&lt;strong>索引是排好序的快速查找&lt;code>数据结构&lt;/code>。&lt;/strong>&lt;/p>
+&lt;p>索引的目的在于提高查询效率，可以类比字典的目录。如果要查&lt;code>mysql&lt;/code>这个这个单词，我们肯定要先定位到&lt;code>m&lt;/code>字母，然后从上往下找&lt;code>y&lt;/code>字母，再找剩下的&lt;code>sql&lt;/code>。如果没有索引，那么可能需要&lt;code>a---z&lt;/code>，这样全字典扫描，如果我想找&lt;code>Java&lt;/code>开头的单词呢？如果我想找&lt;code>Oracle&lt;/code>开头的单词呢？？？&lt;/p>
+&lt;p>&lt;strong>重点：索引会影响到MySQL查找(WHERE的查询条件)和排序(ORDER BY)两大功能！&lt;/strong>&lt;/p>
+&lt;p>&lt;strong>除了数据本身之外，数据库还维护着一个满足特定查找算法的数据结构，这些数据结构以某种方式指向数据，这样就可以在这些数据结构的基础上实现高级查找算法，这种数据结构就是索引。&lt;/strong>&lt;/p>
+&lt;p>一般来说，索引本身也很大，不可能全部存储在内存中，因此索引往往以索引文件的形式存储在磁盘上。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># Linux下查看磁盘空间命令 df -h &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">[&lt;/span>root@Ringo ~&lt;span style="color:#f92672">]&lt;/span>&lt;span style="color:#75715e"># df -h&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>Filesystem Size Used Avail Use% Mounted on
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>/dev/vda1 40G 16G 23G 41% /
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>devtmpfs 911M &lt;span style="color:#ae81ff">0&lt;/span> 911M 0% /dev
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>tmpfs 920M &lt;span style="color:#ae81ff">0&lt;/span> 920M 0% /dev/shm
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>tmpfs 920M 480K 920M 1% /run
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>tmpfs 920M &lt;span style="color:#ae81ff">0&lt;/span> 920M 0% /sys/fs/cgroup
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>overlay 40G 16G 23G 41% 
+&lt;/span>&lt;/span>&lt;/code>&lt;/pr</description></item><item><title>锁</title><link>https://zput.github.io/middleware/docs/mysql/business_facing/innodb_lock/</link><pubDate>Fri, 24 Jan 2020 10:33:00 +0000</pubDate><guid>https://zput.github.io/middleware/docs/mysql/business_facing/innodb_lock/</guid><description>&lt;h1 id="表锁偏读">
+ 表锁(偏读)
+ &lt;a class="anchor" href="#%e8%a1%a8%e9%94%81%e5%81%8f%e8%af%bb">#&lt;/a>
+&lt;/h1>
+&lt;p>&lt;strong>表锁特点：&lt;/strong>&lt;/p>
+&lt;ul>
+&lt;li>表锁偏向&lt;code>MyISAM&lt;/code>存储引擎，开销小，加锁快，无死锁，锁定粒度大，发生锁冲突的概率最高，并发度最低。&lt;/li>
+&lt;/ul>
+&lt;h2 id="环境准备">
+ 环境准备
+ &lt;a class="anchor" href="#%e7%8e%af%e5%a2%83%e5%87%86%e5%a4%87">#&lt;/a>
+&lt;/h2>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-mysql" data-lang="mysql">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 1、创建表
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">CREATE&lt;/span> &lt;span style="color:#66d9ef">TABLE&lt;/span> &lt;span style="color:#f92672">`&lt;/span>mylock&lt;span style="color:#f92672">`&lt;/span>(
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">`&lt;/span>id&lt;span style="color:#f92672">`&lt;/span> &lt;span style="color:#66d9ef">INT&lt;/span> &lt;span style="color:#66d9ef">NOT&lt;/span> &lt;span style="color:#66d9ef">NULL&lt;/span> &lt;span style="color:#66d9ef">PRIMARY&lt;/span> &lt;span style="color:#66d9ef">KEY&lt;/span> &lt;span style="color:#66d9ef">AUTO_INCREMENT&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">`&lt;/span>name&lt;span style="color:#f92672">`&lt;/span> &lt;span style="color:#66d9ef">VARCHAR&lt;/span>(&lt;span style="color:#ae81ff">20&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>)&lt;span style="color:#66d9ef">ENGINE&lt;/span>&lt;span style="color:#f92672">=&lt;/span>MYISAM &lt;span style="color:#66d9ef">DEFAULT&lt;/span> &lt;span style="color:#66d9ef">CHARSET&lt;/span>&lt;span style="color:#f92672">=&lt;/span>utf8 COMMENT&lt;span style="color:#f92672">=&lt;/span>&lt;span style="color:#e6db74">&amp;#39;测试表锁&amp;#39;&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 2、插入数据
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">INSERT&lt;/span> &lt;span style="color:#66d9ef">INTO&lt;/span> &lt;span style="color:#f92672">`&lt;/span>mylock&lt;span style="color:#f92672">`&lt;/span>(&lt;span style="color:#f92672">`&lt;/span>name&lt;span style="color:#f92672">`&lt;/span>) &lt;span style="color:#66d9ef">VALUES&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;ZhangSan&amp;#39;&lt;/span>);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">INSERT&lt;/span> &lt;span style="color:#66d9ef">INTO&lt;/span> &lt;span style="color:#f92672">`&lt;/span>mylock&lt;span style="color:#f92672">`&lt;/span>(&lt;span style="color:#f92672">`&lt;/span>name&lt;span style="color:#f92672">`&lt;/span>) &lt;span style="color:#66d9ef">VALUES&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;LiSi&amp;#39;&lt;/span>);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">INSERT&lt;/span> &lt;span style="color:#66d9ef">INTO&lt;/span> &lt;span style="color:#f92672">`&lt;/span>mylock&lt;span style="color:#f92672">`&lt;/span>(&lt;span style="color:#f92672">`&lt;/span>name&lt;span style="color:#f92672">`&lt;/span>) &lt;span style="color:#66d9ef">VALUES&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;WangWu&amp;#39;&lt;/span>);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">INSERT&lt;/span> &lt;span style="color:#66d9ef">INTO&lt;/span> &lt;span style="color:#f92672">`&lt;/span>mylock&lt;span style="color:#f92672">`&lt;/span>(&lt;span style="color:#f92672">`&lt;/span>name&lt;span style="color:#f92672">`&lt;/span>) &lt;span style="color:#66d9ef">VALUES&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;ZhaoLiu&amp;#39;&lt;/span>);
+&lt;/span>&lt;/span>&lt;/code>&lt;/pr</description></item></channel></rss>
