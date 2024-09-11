@@ -20,7 +20,50 @@
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>	... 
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>limit &lt;span style="color:#75715e"># 7&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>	&lt;span style="color:#f92672">[&lt;/span>offset&lt;span style="color:#f92672">]&lt;/span>
-&lt;/span>&lt;/span>&lt;/code>&lt;/pr</description></item><item><title>初始化</title><link>https://zput.github.io/middleware/docs/mysql/init/install/</link><pubDate>Fri, 24 Jan 2020 10:33:00 +0000</pubDate><guid>https://zput.github.io/middleware/docs/mysql/init/install/</guid><description>&lt;h1 id="mysql环境">
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="七种join">
+ 七种JOIN
+ &lt;a class="anchor" href="#%e4%b8%83%e7%a7%8djoin">#&lt;/a>
+&lt;/h2>
+&lt;p>
+ &lt;img src="https://raw.githubusercontent.com/zput/myPicLib/master/zput.github.io/20201203152719.png" alt="七种JOIN" />&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-sql" data-lang="sql">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">/* 1 */&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">SELECT&lt;/span> &lt;span style="color:#f92672">&amp;lt;&lt;/span>select_list&lt;span style="color:#f92672">&amp;gt;&lt;/span> &lt;span style="color:#66d9ef">FROM&lt;/span> TableA A &lt;span style="color:#66d9ef">LEFT&lt;/span> &lt;span style="color:#66d9ef">JOIN&lt;/span> TableB B &lt;span style="color:#66d9ef">ON&lt;/span> A.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#f92672">=&lt;/span> B.&lt;span style="color:#66d9ef">Key&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">/* 2 */&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">SELECT&lt;/span> &lt;span style="color:#f92672">&amp;lt;&lt;/span>select_list&lt;span style="color:#f92672">&amp;gt;&lt;/span> &lt;span style="color:#66d9ef">FROM&lt;/span> TableA A &lt;span style="color:#66d9ef">RIGHT&lt;/span> &lt;span style="color:#66d9ef">JOIN&lt;/span> TableB B &lt;span style="color:#66d9ef">ON&lt;/span> A.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#f92672">=&lt;/span> B.&lt;span style="color:#66d9ef">Key&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">/* 3 */&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">SELECT&lt;/span> &lt;span style="color:#f92672">&amp;lt;&lt;/span>select_list&lt;span style="color:#f92672">&amp;gt;&lt;/span> &lt;span style="color:#66d9ef">FROM&lt;/span> TableA A &lt;span style="color:#66d9ef">INNER&lt;/span> &lt;span style="color:#66d9ef">JOIN&lt;/span> TableB B &lt;span style="color:#66d9ef">ON&lt;/span> A.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#f92672">=&lt;/span> B.&lt;span style="color:#66d9ef">Key&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">/* 4 */&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">SELECT&lt;/span> &lt;span style="color:#f92672">&amp;lt;&lt;/span>select_list&lt;span style="color:#f92672">&amp;gt;&lt;/span> &lt;span style="color:#66d9ef">FROM&lt;/span> TableA A &lt;span style="color:#66d9ef">LEFT&lt;/span> &lt;span style="color:#66d9ef">JOIN&lt;/span> TableB B &lt;span style="color:#66d9ef">ON&lt;/span> A.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#f92672">=&lt;/span> B.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#66d9ef">WHERE&lt;/span> B.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#66d9ef">IS&lt;/span> &lt;span style="color:#66d9ef">NULL&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">/* 5 */&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">SELECT&lt;/span> &lt;span style="color:#f92672">&amp;lt;&lt;/span>select_list&lt;span style="color:#f92672">&amp;gt;&lt;/span> &lt;span style="color:#66d9ef">FROM&lt;/span> TableA A &lt;span style="color:#66d9ef">RIGHT&lt;/span> &lt;span style="color:#66d9ef">JOIN&lt;/span> TableB B &lt;span style="color:#66d9ef">ON&lt;/span> A.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#f92672">=&lt;/span> B.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#66d9ef">WHERE&lt;/span> A.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#66d9ef">IS&lt;/span> &lt;span style="color:#66d9ef">NULL&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">/* 6 */&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">SELECT&lt;/span> &lt;span style="color:#f92672">&amp;lt;&lt;/span>select_list&lt;span style="color:#f92672">&amp;gt;&lt;/span> &lt;span style="color:#66d9ef">FROM&lt;/span> TableA A &lt;span style="color:#66d9ef">FULL&lt;/span> &lt;span style="color:#66d9ef">OUTER&lt;/span> &lt;span style="color:#66d9ef">JOIN&lt;/span> TableB B &lt;span style="color:#66d9ef">ON&lt;/span> A.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#f92672">=&lt;/span> B.&lt;span style="color:#66d9ef">Key&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">/* MySQL不支持FULL OUTER JOIN这种语法 可以改成 1+2 */&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">SELECT&lt;/span> &lt;span style="color:#f92672">&amp;lt;&lt;/span>select_list&lt;span style="color:#f92672">&amp;gt;&lt;/span> &lt;span style="color:#66d9ef">FROM&lt;/span> TableA A &lt;span style="color:#66d9ef">LEFT&lt;/span> &lt;span style="color:#66d9ef">JOIN&lt;/span> TableB B &lt;span style="color:#66d9ef">ON&lt;/span> A.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#f92672">=&lt;/span> B.&lt;span style="color:#66d9ef">Key&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">UNION&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">SELECT&lt;/span> &lt;span style="color:#f92672">&amp;lt;&lt;/span>select_list&lt;span style="color:#f92672">&amp;gt;&lt;/span> &lt;span style="color:#66d9ef">FROM&lt;/span> TableA A &lt;span style="color:#66d9ef">RIGHT&lt;/span> &lt;span style="color:#66d9ef">JOIN&lt;/span> TableB B &lt;span style="color:#66d9ef">ON&lt;/span> A.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#f92672">=&lt;/span> B.&lt;span style="color:#66d9ef">Key&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">/* 7 */&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">SELECT&lt;/span> &lt;span style="color:#f92672">&amp;lt;&lt;/span>select_list&lt;span style="color:#f92672">&amp;gt;&lt;/span> &lt;span style="color:#66d9ef">FROM&lt;/span> TableA A &lt;span style="color:#66d9ef">FULL&lt;/span> &lt;span style="color:#66d9ef">OUTER&lt;/span> &lt;span style="color:#66d9ef">JOIN&lt;/span> TableB B &lt;span style="color:#66d9ef">ON&lt;/span> A.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#f92672">=&lt;/span> B.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#66d9ef">WHERE&lt;/span> A.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#66d9ef">IS&lt;/span> &lt;span style="color:#66d9ef">NULL&lt;/span> &lt;span style="color:#66d9ef">OR&lt;/span> B.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#66d9ef">IS&lt;/span> &lt;span style="color:#66d9ef">NULL&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">/* MySQL不支持FULL OUTER JOIN这种语法 可以改成 4+5 */&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">SELECT&lt;/span> &lt;span style="color:#f92672">&amp;lt;&lt;/span>select_list&lt;span style="color:#f92672">&amp;gt;&lt;/span> &lt;span style="color:#66d9ef">FROM&lt;/span> TableA A &lt;span style="color:#66d9ef">LEFT&lt;/span> &lt;span style="color:#66d9ef">JOIN&lt;/span> TableB B &lt;span style="color:#66d9ef">ON&lt;/span> A.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#f92672">=&lt;/span> B.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#66d9ef">WHERE&lt;/span> B.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#66d9ef">IS&lt;/span> &lt;span style="color:#66d9ef">NULL&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">UNION&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">SELECT&lt;/span> &lt;span style="color:#f92672">&amp;lt;&lt;/span>select_list&lt;span style="color:#f92672">&amp;gt;&lt;/span> &lt;span style="color:#66d9ef">FROM&lt;/span> TableA A &lt;span style="color:#66d9ef">RIGHT&lt;/span> &lt;span style="color:#66d9ef">JOIN&lt;/span> TableB B &lt;span style="color:#66d9ef">ON&lt;/span> A.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#f92672">=&lt;/span> B.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#66d9ef">WHERE&lt;/span> A.&lt;span style="color:#66d9ef">Key&lt;/span> &lt;span style="color:#66d9ef">IS&lt;/span> &lt;span style="color:#66d9ef">NULL&lt;/span>;
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="查询优化">
+ 查询优化
+ &lt;a class="anchor" href="#%e6%9f%a5%e8%af%a2%e4%bc%98%e5%8c%96">#&lt;/a>
+&lt;/h2>
+&lt;h3 id="小表驱动大表">
+ 小表驱动大表
+ &lt;a class="anchor" href="#%e5%b0%8f%e8%a1%a8%e9%a9%b1%e5%8a%a8%e5%a4%a7%e8%a1%a8">#&lt;/a>
+&lt;/h3>
+&lt;blockquote>
+&lt;p>优化原则：对于MySQL数据库而言，永远都是小表驱动大表。&lt;/p></description></item><item><title>初始化</title><link>https://zput.github.io/middleware/docs/mysql/init/install/</link><pubDate>Fri, 24 Jan 2020 10:33:00 +0000</pubDate><guid>https://zput.github.io/middleware/docs/mysql/init/install/</guid><description>&lt;h1 id="mysql环境">
  MySQL环境
  &lt;a class="anchor" href="#mysql%e7%8e%af%e5%a2%83">#&lt;/a>
 &lt;/h1>
@@ -53,7 +96,13 @@
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 6、查看修改的配置文件&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cat /etc/mysql/my.conf
-&lt;/span>&lt;/span>&lt;/code>&lt;/pr</description></item><item><title>索引</title><link>https://zput.github.io/middleware/docs/mysql/business_facing/innodb_index/</link><pubDate>Fri, 24 Jan 2020 10:33:00 +0000</pubDate><guid>https://zput.github.io/middleware/docs/mysql/business_facing/innodb_index/</guid><description>&lt;h1 id="索引">
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="安装位置">
+ 安装位置
+ &lt;a class="anchor" href="#%e5%ae%89%e8%a3%85%e4%bd%8d%e7%bd%ae">#&lt;/a>
+&lt;/h2>
+&lt;p>&lt;code>Docker&lt;/code>容器就是一个小型的&lt;code>Linux&lt;/code>环境，进入到&lt;code>MySQL&lt;/code>容器中。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>docker exec -it mysql /bin/bash
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;code>Linux&lt;/code>环境下&lt;code>MySQL&lt;/code>的安装目录。&lt;/p></description></item><item><title>索引</title><link>https://zput.github.io/middleware/docs/mysql/business_facing/innodb_index/</link><pubDate>Fri, 24 Jan 2020 10:33:00 +0000</pubDate><guid>https://zput.github.io/middleware/docs/mysql/business_facing/innodb_index/</guid><description>&lt;h1 id="索引">
  索引
  &lt;a class="anchor" href="#%e7%b4%a2%e5%bc%95">#&lt;/a>
 &lt;/h1>
@@ -81,7 +130,7 @@ MySQL官方对索引的定义为：&lt;strong>索引（INDEX）是帮助MySQL对
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>tmpfs 920M 480K 920M 1% /run
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>tmpfs 920M &lt;span style="color:#ae81ff">0&lt;/span> 920M 0% /sys/fs/cgroup
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>overlay 40G 16G 23G 41% 
-&lt;/span>&lt;/span>&lt;/code>&lt;/pr</description></item><item><title>锁</title><link>https://zput.github.io/middleware/docs/mysql/business_facing/innodb_lock/</link><pubDate>Fri, 24 Jan 2020 10:33:00 +0000</pubDate><guid>https://zput.github.io/middleware/docs/mysql/business_facing/innodb_lock/</guid><description>&lt;h1 id="表锁偏读">
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>我们平时所说的索引，如果没有特别指明，都是指B树（多路搜索树，并不一定是二叉的）结构组织的索引。其中聚集索引，次要索引，覆盖索引，复合索引，前缀索引，唯一索引默认都是使用B+树索引，统称索引。当然，除了B+树这种数据结构的索引之外，还有哈希索引（Hash Index）等。&lt;/p></description></item><item><title>锁</title><link>https://zput.github.io/middleware/docs/mysql/business_facing/innodb_lock/</link><pubDate>Fri, 24 Jan 2020 10:33:00 +0000</pubDate><guid>https://zput.github.io/middleware/docs/mysql/business_facing/innodb_lock/</guid><description>&lt;h1 id="表锁偏读">
  表锁(偏读)
  &lt;a class="anchor" href="#%e8%a1%a8%e9%94%81%e5%81%8f%e8%af%bb">#&lt;/a>
 &lt;/h1>
@@ -104,4 +153,46 @@ MySQL官方对索引的定义为：&lt;strong>索引（INDEX）是帮助MySQL对
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">INSERT&lt;/span> &lt;span style="color:#66d9ef">INTO&lt;/span> &lt;span style="color:#f92672">`&lt;/span>mylock&lt;span style="color:#f92672">`&lt;/span>(&lt;span style="color:#f92672">`&lt;/span>name&lt;span style="color:#f92672">`&lt;/span>) &lt;span style="color:#66d9ef">VALUES&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;LiSi&amp;#39;&lt;/span>);
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">INSERT&lt;/span> &lt;span style="color:#66d9ef">INTO&lt;/span> &lt;span style="color:#f92672">`&lt;/span>mylock&lt;span style="color:#f92672">`&lt;/span>(&lt;span style="color:#f92672">`&lt;/span>name&lt;span style="color:#f92672">`&lt;/span>) &lt;span style="color:#66d9ef">VALUES&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;WangWu&amp;#39;&lt;/span>);
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">INSERT&lt;/span> &lt;span style="color:#66d9ef">INTO&lt;/span> &lt;span style="color:#f92672">`&lt;/span>mylock&lt;span style="color:#f92672">`&lt;/span>(&lt;span style="color:#f92672">`&lt;/span>name&lt;span style="color:#f92672">`&lt;/span>) &lt;span style="color:#66d9ef">VALUES&lt;/span>(&lt;span style="color:#e6db74">&amp;#39;ZhaoLiu&amp;#39;&lt;/span>);
-&lt;/span>&lt;/span>&lt;/code>&lt;/pr</description></item></channel></rss>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="锁表的命令">
+ 锁表的命令
+ &lt;a class="anchor" href="#%e9%94%81%e8%a1%a8%e7%9a%84%e5%91%bd%e4%bb%a4">#&lt;/a>
+&lt;/h2>
+&lt;blockquote>
+&lt;p>1、查看数据库表锁的命令。&lt;/p>
+&lt;/blockquote>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-mysql" data-lang="mysql">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 查看数据库表锁的命令
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">SHOW&lt;/span> OPEN &lt;span style="color:#66d9ef">TABLES&lt;/span>;
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;blockquote>
+&lt;p>2、给&lt;code>mylock&lt;/code>表上读锁，给&lt;code>book&lt;/code>表上写锁。&lt;/p>
+&lt;/blockquote>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-mysql" data-lang="mysql">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 给mylock表上读锁，给book表上写锁
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">LOCK&lt;/span> &lt;span style="color:#66d9ef">TABLE&lt;/span> &lt;span style="color:#f92672">`&lt;/span>mylock&lt;span style="color:#f92672">`&lt;/span> &lt;span style="color:#66d9ef">READ&lt;/span>, &lt;span style="color:#f92672">`&lt;/span>book&lt;span style="color:#f92672">`&lt;/span> &lt;span style="color:#66d9ef">WRITE&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 查看当前表的状态
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>mysql&lt;span style="color:#f92672">&amp;gt;&lt;/span> &lt;span style="color:#66d9ef">SHOW&lt;/span> OPEN &lt;span style="color:#66d9ef">TABLES&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">+--------------------+------------------------------------------------------+--------+-------------+&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">|&lt;/span> &lt;span style="color:#66d9ef">Database&lt;/span> &lt;span style="color:#f92672">|&lt;/span> &lt;span style="color:#66d9ef">Table&lt;/span> &lt;span style="color:#f92672">|&lt;/span> In_use &lt;span style="color:#f92672">|&lt;/span> Name_locked &lt;span style="color:#f92672">|&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">+--------------------+------------------------------------------------------+--------+-------------+&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">|&lt;/span> sql_analysis &lt;span style="color:#f92672">|&lt;/span> book &lt;span style="color:#f92672">|&lt;/span> &lt;span style="color:#ae81ff">1&lt;/span> &lt;span style="color:#f92672">|&lt;/span> &lt;span style="color:#ae81ff">0&lt;/span> &lt;span style="color:#f92672">|&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">|&lt;/span> sql_analysis &lt;span style="color:#f92672">|&lt;/span> mylock &lt;span style="color:#f92672">|&lt;/span> &lt;span style="color:#ae81ff">1&lt;/span> &lt;span style="color:#f92672">|&lt;/span> &lt;span style="color:#ae81ff">0&lt;/span> &lt;span style="color:#f92672">|&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">+--------------------+------------------------------------------------------+--------+-------------+&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;blockquote>
+&lt;p>3、释放表锁。&lt;/p>
+&lt;/blockquote>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-mysql" data-lang="mysql">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 释放给表添加的锁
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>&lt;span style="color:#66d9ef">UNLOCK&lt;/span> &lt;span style="color:#66d9ef">TABLES&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 查看当前表的状态
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>mysql&lt;span style="color:#f92672">&amp;gt;&lt;/span> &lt;span style="color:#66d9ef">SHOW&lt;/span> OPEN &lt;span style="color:#66d9ef">TABLES&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">+--------------------+------------------------------------------------------+--------+-------------+&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">|&lt;/span> &lt;span style="color:#66d9ef">Database&lt;/span> &lt;span style="color:#f92672">|&lt;/span> &lt;span style="color:#66d9ef">Table&lt;/span> &lt;span style="color:#f92672">|&lt;/span> In_use &lt;span style="color:#f92672">|&lt;/span> Name_locked &lt;span style="color:#f92672">|&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">+--------------------+------------------------------------------------------+--------+-------------+&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">|&lt;/span> sql_analysis &lt;span style="color:#f92672">|&lt;/span> book &lt;span style="color:#f92672">|&lt;/span> &lt;span style="color:#ae81ff">0&lt;/span> &lt;span style="color:#f92672">|&lt;/span> &lt;span style="color:#ae81ff">0&lt;/span> &lt;span style="color:#f92672">|&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">|&lt;/span> sql_analysis &lt;span style="color:#f92672">|&lt;/span> mylock &lt;span style="color:#f92672">|&lt;/span> &lt;span style="color:#ae81ff">0&lt;/span> &lt;span style="color:#f92672">|&lt;/span> &lt;span style="color:#ae81ff">0&lt;/span> &lt;span style="color:#f92672">|&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#f92672">+--------------------+------------------------------------------------------+--------+-------------+&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="读锁案例">
+ 读锁案例
+ &lt;a class="anchor" href="#%e8%af%bb%e9%94%81%e6%a1%88%e4%be%8b">#&lt;/a>
+&lt;/h2>
+&lt;blockquote>
+&lt;p>1、打开两个会话，&lt;code>SESSION1&lt;/code>为&lt;code>mylock&lt;/code>表添加读锁。&lt;/p></description></item></channel></rss>

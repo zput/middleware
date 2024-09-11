@@ -31,4 +31,10 @@
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># 6、查看修改的配置文件&lt;/span>
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>cat /etc/mysql/my.conf
-&lt;/span>&lt;/span>&lt;/code>&lt;/pr</description></item></channel></rss>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="安装位置">
+ 安装位置
+ &lt;a class="anchor" href="#%e5%ae%89%e8%a3%85%e4%bd%8d%e7%bd%ae">#&lt;/a>
+&lt;/h2>
+&lt;p>&lt;code>Docker&lt;/code>容器就是一个小型的&lt;code>Linux&lt;/code>环境，进入到&lt;code>MySQL&lt;/code>容器中。&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-shell" data-lang="shell">&lt;span style="display:flex;">&lt;span>docker exec -it mysql /bin/bash
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;code>Linux&lt;/code>环境下&lt;code>MySQL&lt;/code>的安装目录。&lt;/p></description></item></channel></rss>

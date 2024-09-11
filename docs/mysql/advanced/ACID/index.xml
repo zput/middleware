@@ -38,4 +38,24 @@
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">func&lt;/span> &lt;span style="color:#a6e22e">CompareAndSet&lt;/span>(&lt;span style="color:#a6e22e">except&lt;/span>, &lt;span style="color:#a6e22e">newValue&lt;/span> &lt;span style="color:#66d9ef">int&lt;/span>)&lt;span style="color:#66d9ef">bool&lt;/span>{
 &lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>	&lt;span style="color:#75715e">//cas操作,如果修改v则返回true
 &lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>}
-&lt;/span>&lt;/span>&lt;/code>&lt;/pr</description></item></channel></rss>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>下面我们来讲讲这几种CAS失败后处理方式。&lt;/p>
+&lt;h2 id="自旋">
+ 自旋
+ &lt;a class="anchor" href="#%e8%87%aa%e6%97%8b">#&lt;/a>
+&lt;/h2>
+&lt;p>最容易想到可能是自旋：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">func&lt;/span> &lt;span style="color:#a6e22e">handleErr&lt;/span>(){
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// 可以使用CPU提供的PAUSE指令来实现「忙等待」，因为可以减少循环等待时的耗电量
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span> &lt;span style="color:#66d9ef">return&lt;/span> &lt;span style="color:#75715e">// 直接返回，马上重试// immediately-retry
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>这样实现的锁显然有个致命的缺点：耗费cpu资源。没有竞争到锁的线程会一直占用cpu资源进行cas操作，假如一个线程获得锁后要花费10s处理业务逻辑，那另外一个线程就会白白的花费10s的cpu资源。（假设系统中就只有这两个线程的情况）。&lt;/p>
+&lt;h2 id="yield">
+ yield
+ &lt;a class="anchor" href="#yield">#&lt;/a>
+&lt;/h2>
+&lt;p>要解决自旋锁的性能问题必须让竞争锁失败的线程不忙等,而是在获取不到锁的时候能把cpu资源给让出来，说到让cpu资源，你可能想到了yield()方法，看看下面的例子：&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-go" data-lang="go">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">func&lt;/span> &lt;span style="color:#a6e22e">handleErr&lt;/span>(){
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">return&lt;/span> &lt;span style="color:#a6e22e">yield&lt;/span>() &lt;span style="color:#75715e">// yield 
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e">&lt;/span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>当线程竞争锁失败时，会调用yield方法让出cpu。需要注意的是该方法只是当前让出cpu，有可能操作系统下次还是选择运行该线程。其实现是
+将当期线程移动到所在优先调度队列的末端（操作系统线程调度了解一下？有时间的话，下次写写这块内容）。也就是说，如果该线程处于优先级最高的调度队列且该队列只有该线程，那操作系统下次还是运行该线程。&lt;/p></description></item></channel></rss>

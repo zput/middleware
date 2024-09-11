@@ -26,7 +26,41 @@
  &lt;a class="anchor" href="#%e4%bb%8e%e7%89%a9%e7%90%86%e7%bb%93%e6%9e%84">#&lt;/a>
 &lt;/h2>
 &lt;p>// TODO 添加 索引底层页的物理结构
-// TODO 添加 联合索引的物理结构&lt;/p></description></item><item><title>聚合函数</title><link>https://zput.github.io/middleware/docs/mysql/advanced/function/</link><pubDate>Sat, 26 Mar 2016 08:47:11 +0000</pubDate><guid>https://zput.github.io/middleware/docs/mysql/advanced/function/</guid><description>&lt;h1 id="count函数">
+// TODO 添加 联合索引的物理结构&lt;/p>
+&lt;p>首先创建索引和维护索引要耗费时间:&lt;/p>
+&lt;ul>
+&lt;li>占用物理空间，数量越多，占用空间越大；&lt;/li>
+&lt;li>B+ 树为了维护索引有序性，都需要进行动态维护。&lt;/li>
+&lt;/ul>
+&lt;h3 id="聚簇主键索引最好是自增的">
+ (聚簇)主键索引最好是自增的
+ &lt;a class="anchor" href="#%e8%81%9a%e7%b0%87%e4%b8%bb%e9%94%ae%e7%b4%a2%e5%bc%95%e6%9c%80%e5%a5%bd%e6%98%af%e8%87%aa%e5%a2%9e%e7%9a%84">#&lt;/a>
+&lt;/h3>
+&lt;p>InnoDB 创建主键索引默认为聚簇索引，数据被存放在了 B+Tree 的叶子节点上。也就是说，同一个叶子节点内的各个数据是按主键顺序存放的，因此，每当有一条新的数据插入时，数据库会根据主键将其插入到对应的叶子节点中。&lt;/p>
+&lt;p>如果我们使用自增主键，那么每次插入的新数据就会按顺序添加到当前索引节点的位置，不需要移动已有的数据，当页面写满，就会自动开辟一个新页面。因为每次插入一条新记录，都是追加操作，不需要重新移动数据，因此这种插入数据的方法效率非常高。&lt;/p>
+&lt;p>如果我们使用非自增主键，由于每次插入主键的索引值都是随机的，因此每次插入新的数据时，就可能会插入到现有数据页中间的某个位置，这将不得不移动其它数据来满足新数据的插入，甚至需要从一个页面复制数据到另外一个页面，我们通常将这种情况称为页分裂。页分裂还有可能会造成大量的内存碎片，导致索引结构不紧凑，从而影响查询效率。&lt;/p>
+&lt;p>举个例子，假设某个数据页中的数据是1、3、5、9，且数据页满了，现在准备插入一个数据7，则需要把数据页分割为两个数据页：&lt;/p>
+&lt;h3 id="非聚簇二级索引">
+ (非聚簇)二级索引
+ &lt;a class="anchor" href="#%e9%9d%9e%e8%81%9a%e7%b0%87%e4%ba%8c%e7%ba%a7%e7%b4%a2%e5%bc%95">#&lt;/a>
+&lt;/h3>
+&lt;h4 id="区分度太小的不适合">
+ 区分度太小的不适合
+ &lt;a class="anchor" href="#%e5%8c%ba%e5%88%86%e5%ba%a6%e5%a4%aa%e5%b0%8f%e7%9a%84%e4%b8%8d%e9%80%82%e5%90%88">#&lt;/a>
+&lt;/h4>
+&lt;p>// 区分度太小的也不适合做索引，比如sex字段，它的值一般不超过三个，区分度太小，你就算找到了sex=man的，你还是需要在它剩下的里面查找b,c,这种相当于查找了三分之一个表。还需要回表。&lt;/p>
+&lt;h4 id="联合索引的顺序要挑选最常用的在最前面">
+ 联合索引的顺序要挑选最常用的在最前面
+ &lt;a class="anchor" href="#%e8%81%94%e5%90%88%e7%b4%a2%e5%bc%95%e7%9a%84%e9%a1%ba%e5%ba%8f%e8%a6%81%e6%8c%91%e9%80%89%e6%9c%80%e5%b8%b8%e7%94%a8%e7%9a%84%e5%9c%a8%e6%9c%80%e5%89%8d%e9%9d%a2">#&lt;/a>
+&lt;/h4>
+&lt;ul>
+&lt;li>(a, b, c) 联合索引，是先按 a 排序，在 a 相同的情况再按 b 排序，在 b 相同的情况再按 c 排序。所以，b 和 c 是全局无序，局部相对有序的，这样在没有遵循最左匹配原则的情况下，是无法利用到索引的。
+&lt;ul>
+&lt;li>联合索引的最左匹配原则，在遇到范围查询（&amp;gt;、&amp;lt;、between、like 包括like &amp;lsquo;林%&amp;lsquo;这种）的时候，就会停止匹配，也就是范围列可以用到联合索引，但是范围列后面的列无法用到联合索引。&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;p>// 就知道了它对于联合索引的一些问题，比如a,b,c; where b,c的时候就不会进过索引。&lt;/p></description></item><item><title>聚合函数</title><link>https://zput.github.io/middleware/docs/mysql/advanced/function/</link><pubDate>Sat, 26 Mar 2016 08:47:11 +0000</pubDate><guid>https://zput.github.io/middleware/docs/mysql/advanced/function/</guid><description>&lt;h1 id="count函数">
  count函数
  &lt;a class="anchor" href="#count%e5%87%bd%e6%95%b0">#&lt;/a>
 &lt;/h1>
@@ -43,7 +77,14 @@
  count(聚簇索引)
  &lt;a class="anchor" href="#count%e8%81%9a%e7%b0%87%e7%b4%a2%e5%bc%95">#&lt;/a>
 &lt;/h2>
-&lt;p>有辅助索引时，InnoDB循环遍历的对象就不是聚簇索引，而是辅助索引。&lt;/p></description></item><item><title>三种日志</title><link>https://zput.github.io/middleware/docs/mysql/advanced/log/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://zput.github.io/middleware/docs/mysql/advanced/log/</guid><description>&lt;h1 id="log">
+&lt;p>有辅助索引时，InnoDB循环遍历的对象就不是聚簇索引，而是辅助索引。&lt;/p>
+&lt;p>如果有多个辅助索引, 优化器会使用key_len,挑选最小的辅助索引进行扫描。&lt;/p>
+&lt;p>这是因为相同数量的辅助索引记录可以比聚簇索引记录占用更少的存储空间，所以辅助索引树比聚簇(主键)索引树小，这样遍历辅助索引的 I/O 成本比遍历聚簇(主键)索引的 I/O 成本小，因此「优化器」优先选择的是最小的辅助索引。&lt;/p>
+&lt;h2 id="count非聚簇索引">
+ count(非聚簇索引)
+ &lt;a class="anchor" href="#count%e9%9d%9e%e8%81%9a%e7%b0%87%e7%b4%a2%e5%bc%95">#&lt;/a>
+&lt;/h2>
+&lt;p>使用辅助索引来进行统计&lt;/p></description></item><item><title>三种日志</title><link>https://zput.github.io/middleware/docs/mysql/advanced/log/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://zput.github.io/middleware/docs/mysql/advanced/log/</guid><description>&lt;h1 id="log">
  log
  &lt;a class="anchor" href="#log">#&lt;/a>
 &lt;/h1>
